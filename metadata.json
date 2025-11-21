@@ -1,0 +1,5 @@
+{
+  "name": "Kano Marketplace",
+  "description": "An AI-enhanced online marketplace where users can browse, search, and list products. It leverages the Gemini API to automatically generate compelling product descriptions for sellers, improving listing quality and user engagement.",
+  "requestFramePermissions": []
+}
