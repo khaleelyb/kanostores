@@ -3,7 +3,7 @@ export const CATEGORIES = [
   'Mobile Phones & Tablets',
   'Electronics',
   'Fashion',
-  'Leisure & Activities',
+  'Gym equipments',
   'Beauty & Personal Care',
   'Health & Medicine',
   'Vehicles',
