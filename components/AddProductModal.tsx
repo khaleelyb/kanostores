@@ -17,7 +17,10 @@ type Mode = 'select-method' | 'form';
 export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onAddProduct, onUpdateProduct, productToEdit }) => {
   const [mode, setMode] = useState<Mode>('select-method');
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState(CATEGORIES[0]);
+  const [category, setCategory] = useState(() => {
+  const saved = localStorage.getItem('kano-last-category');
+  return saved && CATEGORIES.includes(saved) ? saved : CATEGORIES[0];
+});
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
   const [images, setImages] = useState<string[]>([]);
@@ -90,11 +93,14 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !price || !category || !description || images.length === 0) {
-      alert('Please fill all fields and provide at least one image.');
-      return;
-    }
-    
-    if (isEditMode) {
+  alert('Please fill all fields and provide at least one image.');
+  return;
+}
+
+// Save last used category
+localStorage.setItem('kano-last-category', category);
+
+if (isEditMode) {
         const updatedProduct: Product = {
             ...productToEdit,
             title,
