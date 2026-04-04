@@ -12,6 +12,8 @@ import { EditProfilePage } from './components/EditProfilePage';
 import { AuthModal, AuthData } from './components/AuthModal';
 import { AuthPrompt } from './components/AuthPrompt';
 import { ProductDetailPage } from './components/ProductDetailPage';
+import { ShopListPage } from './components/ShopListPage';
+import { ShopProductsPage } from './components/ShopProductsPage';
 import { Toast } from './components/Toast';
 import { Product, User, Theme, Message, MessageThread, Page } from './types';
 import { CATEGORIES } from './constants';
@@ -31,7 +33,8 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // UI State
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedShop, setSelectedShop] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activePage, setActivePage] = useState<Page>('home');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -86,16 +89,14 @@ const App: React.FC = () => {
       if (!state) {
         setSelectedProduct(null);
         setActiveThreadId(null);
+        setSelectedCategory(null);
+        setSelectedShop(null);
         setActivePage('home');
         return;
       }
 
-      // Handle Page State
-      if (state.page) {
-        setActivePage(state.page);
-      }
+      if (state.page) setActivePage(state.page);
 
-      // Handle Product View
       if (state.view === 'product' && state.productId) {
         const product = products.find(p => p.id === state.productId);
         if (product) setSelectedProduct(product);
@@ -103,23 +104,33 @@ const App: React.FC = () => {
         setSelectedProduct(null);
       }
 
-      // Handle Thread View
       if (state.view === 'thread' && state.threadId) {
         setActiveThreadId(state.threadId);
       } else {
         setActiveThreadId(null);
       }
+
+      if (state.view === 'shop' && state.sellerId) {
+        const seller = users.find(u => u.id === state.sellerId);
+        if (seller) setSelectedShop(seller);
+        if (state.category) setSelectedCategory(state.category);
+      } else if (state.view === 'category' && state.category) {
+        setSelectedCategory(state.category);
+        setSelectedShop(null);
+      } else if (!state.view || state.view === 'home') {
+        setSelectedCategory(null);
+        setSelectedShop(null);
+      }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [products, threads]); 
+  }, [products, threads, users]);
 
   // --- EFFECTS ---
   useEffect(() => {
     if (currentUser) {
       db.saveCurrentUser(currentUser);
-      // Reload saved products when user changes
       db.getSavedProductIds(currentUser.id).then(setSavedProductIds);
     } else {
       db.clearCurrentUser();
@@ -136,7 +147,6 @@ const App: React.FC = () => {
     }
   }, [theme]);
 
-  // Scroll Restoration Logic
   useEffect(() => {
     if (!selectedProduct && scrollPosition.current > 0) {
         window.scrollTo(0, scrollPosition.current);
@@ -191,12 +201,13 @@ const App: React.FC = () => {
     window.history.pushState({ page: 'home' }, '', '#home');
     setActivePage('home');
     setSelectedProduct(null);
+    setSelectedCategory(null);
+    setSelectedShop(null);
     showToast("You have been logged out.");
   };
 
   const handleUpdateProfilePicture = async (newPictureUrl: string) => {
     if (!currentUser) return;
-    
     const success = await db.updateUser(currentUser.id, { profilePicture: newPictureUrl });
     if (success) {
       const updatedUser = { ...currentUser, profilePicture: newPictureUrl };
@@ -210,12 +221,10 @@ const App: React.FC = () => {
   
   const handleUpdateProfile = async (name: string, username: string) => {
     if (!currentUser) return;
-    
     if (username !== currentUser.username && users.some(u => u.username === username && u.id !== currentUser.id)) {
         showToast("This username is already taken.");
         return;
     }
-    
     const success = await db.updateUser(currentUser.id, { name, username });
     if (success) {
       const updatedUser = { ...currentUser, name, username };
@@ -234,14 +243,12 @@ const App: React.FC = () => {
         setAuthModal({isOpen: true, view: 'login'});
         return;
     }
-    
     const newProduct = await db.createProduct({
       ...productData,
       sellerId: currentUser.id,
       location: 'Kano',
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     });
-    
     if (newProduct) {
       setProducts(prev => [newProduct, ...prev]);
       showToast('Your ad has been posted successfully!');
@@ -284,9 +291,7 @@ const App: React.FC = () => {
         showToast('Please log in to save products.');
         return;
     }
-    
     const isSaved = savedProductIds.has(productId);
-    
     if (isSaved) {
       const success = await db.unsaveProduct(currentUser.id, productId);
       if (success) {
@@ -315,7 +320,26 @@ const App: React.FC = () => {
     setProductToEdit(null);
     setIsAddProductModalOpen(true);
   };
+
+  // Category selected → navigate to shop list
+  const handleSelectCategory = (category: string) => {
+    scrollPosition.current = window.scrollY;
+    window.history.pushState({ view: 'category', category, page: 'home' }, '', `#category=${encodeURIComponent(category)}`);
+    setSelectedCategory(category);
+    setSelectedShop(null);
+    setSelectedProduct(null);
+  };
   
+  const handleSelectShop = (seller: User) => {
+    if (!selectedCategory) return;
+    window.history.pushState(
+      { view: 'shop', sellerId: seller.id, category: selectedCategory, page: 'home' },
+      '',
+      `#shop=${seller.id}`
+    );
+    setSelectedShop(seller);
+  };
+
   const handleSelectProduct = (product: Product) => {
       scrollPosition.current = window.scrollY;
       window.history.pushState({ view: 'product', productId: product.id, page: activePage }, '', `#product=${product.id}`);
@@ -337,20 +361,16 @@ const App: React.FC = () => {
   
   const handleSendMessage = async (messageText: string) => {
     if (!currentUser || !messageModal.product) return;
-
     const { product } = messageModal;
     const participants: [string, string] = [currentUser.id, product.sellerId].sort() as [string, string];
     const threadId = `${product.id}-${participants[0]}-${participants[1]}`;
-
     const newMessage: Message = {
         id: Date.now().toString(),
         senderId: currentUser.id,
         text: messageText,
         timestamp: Date.now(),
     };
-
     const existingThread = threads.find(t => t.id === threadId);
-    
     if (existingThread) {
         const createdMessage = await db.createMessage(newMessage, threadId);
         if (createdMessage) {
@@ -368,7 +388,6 @@ const App: React.FC = () => {
             participants,
             lastMessageTimestamp: newMessage.timestamp,
         });
-        
         if (newThread) {
           const createdMessage = await db.createMessage(newMessage, threadId);
           if (createdMessage) {
@@ -376,10 +395,8 @@ const App: React.FC = () => {
           }
         }
     }
-
     setMessageModal({ isOpen: false, product: null });
     showToast('Message sent!');
-    
     window.history.pushState({ page: 'messages' }, '', '#messages');
     setActivePage('messages');
     window.history.pushState({ view: 'thread', threadId, page: 'messages' }, '', `#thread=${threadId}`);
@@ -388,14 +405,12 @@ const App: React.FC = () => {
 
   const handleSendMessageInChat = async (text: string, threadId: string) => {
     if (!currentUser) return;
-    
     const newMessage: Message = {
       id: Date.now().toString(),
       senderId: currentUser.id,
       text,
       timestamp: Date.now(),
     };
-
     const createdMessage = await db.createMessage(newMessage, threadId);
     if (createdMessage) {
       setThreads(threads.map(t => t.id === threadId ? {
@@ -412,11 +427,12 @@ const App: React.FC = () => {
   };
 
   const handlePageChange = (page: Page) => {
-    if (activePage === page && !selectedProduct && !activeThreadId) return;
-    
+    if (activePage === page && !selectedProduct && !activeThreadId && !selectedCategory) return;
     window.history.pushState({ page }, '', `#${page}`);
     setSelectedProduct(null);
     setActiveThreadId(null);
+    setSelectedCategory(null);
+    setSelectedShop(null);
     setActivePage(page);
   };
   
@@ -424,16 +440,28 @@ const App: React.FC = () => {
       window.history.back();
   };
 
+  // When search is used, exit category/shop view and go back to home grid
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    if (query && (selectedCategory || selectedShop || selectedProduct)) {
+      setSelectedCategory(null);
+      setSelectedShop(null);
+      setSelectedProduct(null);
+      setActivePage('home');
+    }
+  };
+
   // --- COMPUTED VALUES ---
   const filteredProducts = useMemo(() => {
-    return products.filter(product => {
-      const categoryMatch = selectedCategory === 'All' || product.category === selectedCategory;
-      const searchMatch = searchQuery === '' || 
-        product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchQuery.toLowerCase());
-      return categoryMatch && searchMatch;
-    });
-  }, [products, selectedCategory, searchQuery]);
+    // Search mode: search across all products
+    if (searchQuery) {
+      return products.filter(product => {
+        return product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          product.description.toLowerCase().includes(searchQuery.toLowerCase());
+      });
+    }
+    return products;
+  }, [products, searchQuery]);
   
   const savedProducts = useMemo(() => {
     return products.filter(p => savedProductIds.has(p.id));
@@ -455,6 +483,7 @@ const App: React.FC = () => {
   }
 
   const renderPage = () => {
+    // Product detail view (top priority)
     if (selectedProduct) {
         const seller = users.find(u => u.id === selectedProduct.sellerId);
         return <ProductDetailPage 
@@ -467,6 +496,7 @@ const App: React.FC = () => {
         />;
     }
 
+    // Chat view
     if (activeThread) {
         const otherParticipantId = activeThread.participants.find(p => p !== currentUser?.id);
         const participant = users.find(u => u.id === otherParticipantId);
@@ -480,6 +510,7 @@ const App: React.FC = () => {
         />;
     }
 
+    // Non-home pages
     switch (activePage) {
         case 'saved':
             return currentUser ? <SavedPage products={savedProducts} onMessageSeller={handleMessageSeller} savedProductIds={savedProductIds} onToggleSave={handleToggleSave} onSelectProduct={handleSelectProduct} /> : <AuthPrompt page="saved" onLoginClick={() => setAuthModal({isOpen: true, view: 'login'})} />;
@@ -491,10 +522,58 @@ const App: React.FC = () => {
             return currentUser ? <EditProfilePage currentUser={currentUser} onSaveChanges={handleUpdateProfile} onClose={handleBack} /> : <AuthPrompt page="edit-profile" onLoginClick={() => setAuthModal({isOpen: true, view: 'login'})} />;
         case 'home':
         default:
+            // Search mode: show flat product list
+            if (searchQuery) {
+              return (
+                <>
+                  <div className="container mx-auto px-4 pt-6 pb-2">
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">
+                      Showing results for <span className="font-semibold text-gray-800 dark:text-gray-200">"{searchQuery}"</span> — {filteredProducts.length} {filteredProducts.length === 1 ? 'result' : 'results'}
+                    </p>
+                  </div>
+                  <ProductGrid products={filteredProducts} onMessageSeller={handleMessageSeller} savedProductIds={savedProductIds} onToggleSave={handleToggleSave} onSelectProduct={handleSelectProduct} />
+                </>
+              );
+            }
+
+            // Shop products view
+            if (selectedShop && selectedCategory) {
+              return (
+                <ShopProductsPage
+                  seller={selectedShop}
+                  category={selectedCategory}
+                  products={products}
+                  savedProductIds={savedProductIds}
+                  onToggleSave={handleToggleSave}
+                  onSelectProduct={handleSelectProduct}
+                  onMessageSeller={handleMessageSeller}
+                  onBack={handleBack}
+                />
+              );
+            }
+
+            // Shop list view (category selected)
+            if (selectedCategory) {
+              return (
+                <ShopListPage
+                  category={selectedCategory}
+                  products={products}
+                  users={users}
+                  onSelectShop={handleSelectShop}
+                  onBack={handleBack}
+                />
+              );
+            }
+
+            // Default home: category filter + all products grid
             return (
                 <>
-                    <CategoryFilter categories={CATEGORIES} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} />
-                    <ProductGrid products={filteredProducts} onMessageSeller={handleMessageSeller} savedProductIds={savedProductIds} onToggleSave={handleToggleSave} onSelectProduct={handleSelectProduct} />
+                    <CategoryFilter
+                      categories={CATEGORIES}
+                      selectedCategory={null}
+                      setSelectedCategory={handleSelectCategory}
+                    />
+                    <ProductGrid products={products} onMessageSeller={handleMessageSeller} savedProductIds={savedProductIds} onToggleSave={handleToggleSave} onSelectProduct={handleSelectProduct} />
                 </>
             );
     }
@@ -504,7 +583,7 @@ const App: React.FC = () => {
     <div className="flex flex-col min-h-screen">
       <Header
         searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
+        setSearchQuery={handleSearchChange}
         onPostAdClick={handlePostAdClick}
         activePage={activePage}
         setActivePage={handlePageChange}
