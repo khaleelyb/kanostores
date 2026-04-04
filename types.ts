@@ -15,6 +15,7 @@ export interface User {
   name: string;
   username: string;
   profilePicture: string;
+  phone?: string;
   isAdmin?: boolean;
 }
 
