@@ -48,14 +48,15 @@ export const getUsers = async (): Promise<User[]> => {
             .from('users')
             .select('*')
             .order('created_at', { ascending: false });
-        
+
         if (error) throw error;
-        
+
         return (data || []).map(u => ({
             id: u.id,
             name: u.name,
             username: u.username,
-            profilePicture: u.profile_picture
+            profilePicture: u.profile_picture,
+            phone: u.phone ?? undefined,
         }));
     } catch (error) {
         console.error('Error fetching users:', error);
@@ -70,18 +71,20 @@ export const createUser = async (user: Omit<User, 'id'>): Promise<User | null> =
             .insert({
                 name: user.name,
                 username: user.username,
-                profile_picture: user.profilePicture
+                profile_picture: user.profilePicture,
+                phone: user.phone ?? null,
             })
             .select()
             .single();
-        
+
         if (error) throw error;
-        
+
         return {
             id: data.id,
             name: data.name,
             username: data.username,
-            profilePicture: data.profile_picture
+            profilePicture: data.profile_picture,
+            phone: data.phone ?? undefined,
         };
     } catch (error) {
         console.error('Error creating user:', error);
@@ -91,15 +94,17 @@ export const createUser = async (user: Omit<User, 'id'>): Promise<User | null> =
 
 export const updateUser = async (userId: string, updates: Partial<User>): Promise<boolean> => {
     try {
+        const payload: Record<string, unknown> = {};
+        if (updates.name !== undefined) payload.name = updates.name;
+        if (updates.username !== undefined) payload.username = updates.username;
+        if (updates.profilePicture !== undefined) payload.profile_picture = updates.profilePicture;
+        if (updates.phone !== undefined) payload.phone = updates.phone || null;
+
         const { error } = await supabase
             .from('users')
-            .update({
-                name: updates.name,
-                username: updates.username,
-                profile_picture: updates.profilePicture
-            })
+            .update(payload)
             .eq('id', userId);
-        
+
         if (error) throw error;
         return true;
     } catch (error) {
@@ -115,23 +120,16 @@ export const getProducts = async (): Promise<Product[]> => {
             .from('products')
             .select('*')
             .order('created_at', { ascending: false });
-        
+
         if (error) throw error;
-        
+
         return (data || []).map(p => {
             let images: string[] = [];
             try {
                 const parsed = JSON.parse(p.image);
-                if (Array.isArray(parsed)) {
-                    images = parsed;
-                } else {
-                    images = [p.image];
-                }
+                images = Array.isArray(parsed) ? parsed : [p.image];
             } catch {
-                // If it fails to parse, assume it's a single URL string
-                if (p.image) {
-                    images = [p.image];
-                }
+                if (p.image) images = [p.image];
             }
 
             return {
@@ -139,11 +137,11 @@ export const getProducts = async (): Promise<Product[]> => {
                 title: p.title,
                 price: p.price,
                 category: p.category,
-                images: images, 
+                images,
                 location: p.location,
                 date: p.date,
                 description: p.description,
-                sellerId: p.seller_id
+                sellerId: p.seller_id,
             };
         });
     } catch (error) {
@@ -154,7 +152,6 @@ export const getProducts = async (): Promise<Product[]> => {
 
 export const createProduct = async (product: Omit<Product, 'id'>): Promise<Product | null> => {
     try {
-        // Serialize images array to JSON string
         const imagePayload = JSON.stringify(product.images);
 
         const { data, error } = await supabase
@@ -163,39 +160,35 @@ export const createProduct = async (product: Omit<Product, 'id'>): Promise<Produ
                 title: product.title,
                 price: product.price,
                 category: product.category,
-                image: imagePayload, // Store as JSON string
+                image: imagePayload,
                 location: product.location,
                 date: product.date,
                 description: product.description,
-                seller_id: product.sellerId
+                seller_id: product.sellerId,
             })
             .select()
             .single();
-        
-        if (error) {
-            console.error('Supabase createProduct error details:', error.message, error.details, error.hint);
-            throw error;
-        }
+
+        if (error) throw error;
 
         let images: string[] = [];
         try {
-             const parsed = JSON.parse(data.image);
-             if (Array.isArray(parsed)) images = parsed;
-             else images = [data.image];
+            const parsed = JSON.parse(data.image);
+            images = Array.isArray(parsed) ? parsed : [data.image];
         } catch {
-             images = [data.image];
+            images = [data.image];
         }
-        
+
         return {
             id: data.id,
             title: data.title,
             price: data.price,
             category: data.category,
-            images: images,
+            images,
             location: data.location,
             date: data.date,
             description: data.description,
-            sellerId: data.seller_id
+            sellerId: data.seller_id,
         };
     } catch (error) {
         console.error('Error creating product:', error);
@@ -205,11 +198,11 @@ export const createProduct = async (product: Omit<Product, 'id'>): Promise<Produ
 
 export const updateProduct = async (productId: string, updates: Partial<Product>): Promise<boolean> => {
     try {
-        const payload: any = {
+        const payload: Record<string, unknown> = {
             title: updates.title,
             price: updates.price,
             category: updates.category,
-            description: updates.description
+            description: updates.description,
         };
 
         if (updates.images) {
@@ -220,7 +213,7 @@ export const updateProduct = async (productId: string, updates: Partial<Product>
             .from('products')
             .update(payload)
             .eq('id', productId);
-        
+
         if (error) throw error;
         return true;
     } catch (error) {
@@ -235,7 +228,7 @@ export const deleteProduct = async (productId: string): Promise<boolean> => {
             .from('products')
             .delete()
             .eq('id', productId);
-        
+
         if (error) throw error;
         return true;
     } catch (error) {
@@ -244,7 +237,7 @@ export const deleteProduct = async (productId: string): Promise<boolean> => {
     }
 };
 
-// Saved Products, Threads, Messages, etc. (unchanged)
+// Saved Products
 export const getSavedProductIds = async (userId: string | undefined): Promise<Set<string>> => {
     if (!userId) return new Set();
     try {
@@ -279,24 +272,42 @@ export const unsaveProduct = async (userId: string, productId: string): Promise<
     }
 };
 
+// Threads
 export const getThreads = async (): Promise<MessageThread[]> => {
     try {
-        const { data: threadsData, error: threadsError } = await supabase.from('message_threads').select('*').order('last_message_timestamp', { ascending: false });
+        const { data: threadsData, error: threadsError } = await supabase
+            .from('message_threads')
+            .select('*')
+            .order('last_message_timestamp', { ascending: false });
+
         if (threadsError) throw threadsError;
-        
-        const threads = await Promise.all((threadsData || []).map(async (thread) => {
-            const { data: messagesData, error: messagesError } = await supabase.from('messages').select('*').eq('thread_id', thread.id).order('timestamp', { ascending: true });
+
+        const threads = await Promise.all((threadsData || []).map(async thread => {
+            const { data: messagesData, error: messagesError } = await supabase
+                .from('messages')
+                .select('*')
+                .eq('thread_id', thread.id)
+                .order('timestamp', { ascending: true });
+
             if (messagesError) throw messagesError;
-            const messages: Message[] = (messagesData || []).map(m => ({ id: m.id, senderId: m.sender_id, text: m.text, timestamp: m.timestamp }));
+
+            const messages: Message[] = (messagesData || []).map(m => ({
+                id: m.id,
+                senderId: m.sender_id,
+                text: m.text,
+                timestamp: m.timestamp,
+            }));
+
             return {
                 id: thread.id,
                 productId: thread.product_id,
                 productTitle: thread.product_title,
                 participants: [thread.participant1_id, thread.participant2_id] as [string, string],
                 messages,
-                lastMessageTimestamp: thread.last_message_timestamp
+                lastMessageTimestamp: thread.last_message_timestamp,
             };
         }));
+
         return threads;
     } catch (error) {
         console.error('Error fetching threads:', error);
@@ -306,22 +317,28 @@ export const getThreads = async (): Promise<MessageThread[]> => {
 
 export const createThread = async (thread: Omit<MessageThread, 'messages'>): Promise<MessageThread | null> => {
     try {
-        const { data, error } = await supabase.from('message_threads').insert({
+        const { data, error } = await supabase
+            .from('message_threads')
+            .insert({
                 id: thread.id,
                 product_id: thread.productId,
                 product_title: thread.productTitle,
                 participant1_id: thread.participants[0],
                 participant2_id: thread.participants[1],
-                last_message_timestamp: thread.lastMessageTimestamp
-            }).select().single();
+                last_message_timestamp: thread.lastMessageTimestamp,
+            })
+            .select()
+            .single();
+
         if (error) throw error;
+
         return {
             id: data.id,
             productId: data.product_id,
             productTitle: data.product_title,
             participants: [data.participant1_id, data.participant2_id] as [string, string],
             messages: [],
-            lastMessageTimestamp: data.last_message_timestamp
+            lastMessageTimestamp: data.last_message_timestamp,
         };
     } catch (error) {
         console.error('Error creating thread:', error);
@@ -331,7 +348,11 @@ export const createThread = async (thread: Omit<MessageThread, 'messages'>): Pro
 
 export const updateThreadTimestamp = async (threadId: string, timestamp: number): Promise<boolean> => {
     try {
-        const { error } = await supabase.from('message_threads').update({ last_message_timestamp: timestamp }).eq('id', threadId);
+        const { error } = await supabase
+            .from('message_threads')
+            .update({ last_message_timestamp: timestamp })
+            .eq('id', threadId);
+
         if (error) throw error;
         return true;
     } catch (error) {
@@ -342,14 +363,20 @@ export const updateThreadTimestamp = async (threadId: string, timestamp: number)
 
 export const createMessage = async (message: Message, threadId: string): Promise<Message | null> => {
     try {
-        const { data, error } = await supabase.from('messages').insert({
+        const { data, error } = await supabase
+            .from('messages')
+            .insert({
                 thread_id: threadId,
                 sender_id: message.senderId,
                 text: message.text,
-                timestamp: message.timestamp
-            }).select().single();
+                timestamp: message.timestamp,
+            })
+            .select()
+            .single();
+
         if (error) throw error;
         await updateThreadTimestamp(threadId, message.timestamp);
+
         return { id: data.id, senderId: data.sender_id, text: data.text, timestamp: data.timestamp };
     } catch (error) {
         console.error('Error creating message:', error);
