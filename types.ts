@@ -3,7 +3,7 @@ export interface Product {
   title: string;
   price: number;
   category: string;
-  images: string[]; // Changed from image: string to images: string[]
+  images: string[];
   location: string;
   date: string;
   description: string;
@@ -14,7 +14,8 @@ export interface User {
   id: string;
   name: string;
   username: string;
-  profilePicture: string; // URL to the image or data URL
+  profilePicture: string;
+  isAdmin?: boolean;
 }
 
 export type Theme = 'light' | 'dark' | 'system';
@@ -27,12 +28,12 @@ export interface Message {
 }
 
 export interface MessageThread {
-  id: string; // combination of participants and product
+  id: string;
   productId: string;
   productTitle: string;
-  participants: [string, string]; // [user1_id, user2_id]
+  participants: [string, string];
   messages: Message[];
   lastMessageTimestamp: number;
 }
 
-export type Page = 'home' | 'saved' | 'messages' | 'profile' | 'edit-profile';
+export type Page = 'home' | 'saved' | 'messages' | 'profile' | 'edit-profile' | 'admin';
