@@ -196,13 +196,25 @@ const App: React.FC = () => {
   };
 
   const handleAdminDeleteUser = async (id: string) => {
-    // Delete user's products first, then the user
-    const userProducts = products.filter(p => p.sellerId === id);
-    await Promise.all(userProducts.map(p => db.deleteProduct(p.id)));
-    const ok = await db.updateUser(id, {}); // Soft approach; ideally call db.deleteUser
+    const userProds = products.filter(p => p.sellerId === id);
+    await Promise.all(userProds.map(p => db.deleteProduct(p.id)));
     setProducts(products.filter(p => p.sellerId !== id));
     setUsers(users.filter(u => u.id !== id));
     showToast('User removed.');
+  };
+
+  const handleAdminUpdateUser = async (userId: string, updates: Partial<User>) => {
+    const ok = await db.updateUser(userId, updates);
+    if (ok) {
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
+      if (currentUser && currentUser.id === userId) {
+        setCurrentUser(prev => prev ? { ...prev, ...updates } : prev);
+      }
+      if (updates.isVerified !== undefined) showToast(updates.isVerified ? 'Verified badge granted.' : 'Verified badge removed.');
+      else if (updates.isBoosted !== undefined) showToast(updates.isBoosted ? 'User boosted!' : 'Boost removed.');
+    } else {
+      showToast('Error updating user.');
+    }
   };
 
   // --- SAVE / TOGGLE ---
@@ -337,7 +349,7 @@ const App: React.FC = () => {
     switch (activePage) {
       case 'admin':
         return currentUser?.isAdmin
-          ? <AdminDashboard products={products} users={users} currentUser={currentUser} onDeleteProduct={handleAdminDeleteProduct} onDeleteUser={handleAdminDeleteUser} onBack={handleBack} />
+          ? <AdminDashboard products={products} users={users} currentUser={currentUser} onDeleteProduct={handleAdminDeleteProduct} onDeleteUser={handleAdminDeleteUser} onUpdateUser={handleAdminUpdateUser} onBack={handleBack} />
           : <AuthPrompt page="home" onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })} />;
 
       case 'saved':
