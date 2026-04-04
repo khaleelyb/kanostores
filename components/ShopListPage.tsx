@@ -1,6 +1,28 @@
 import React from 'react';
 import { User, Product } from '../types';
 
+const VerifiedBadge = () => (
+  <svg className="w-4 h-4 text-blue-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" title="Verified">
+    <path fillRule="evenodd" d="M8.603 3.799A4.49 4.49 0 0 1 12 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 0 1 3.498 1.307 4.491 4.491 0 0 1 1.307 3.497A4.49 4.49 0 0 1 21.75 12a4.49 4.49 0 0 1-1.549 3.397 4.491 4.491 0 0 1-1.307 3.497 4.491 4.491 0 0 1-3.497 1.307A4.49 4.49 0 0 1 12 21.75a4.49 4.49 0 0 1-3.397-1.549 4.491 4.491 0 0 1-3.497-1.307 4.491 4.491 0 0 1-1.307-3.497A4.49 4.49 0 0 1 2.25 12a4.49 4.49 0 0 1 1.549-3.397 4.491 4.491 0 0 1 1.307-3.497 4.491 4.491 0 0 1 3.497-1.307Zm7.007 6.387a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clipRule="evenodd" />
+  </svg>
+);
+const BoostedBadge = () => (
+  <span className="inline-flex items-center gap-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path fillRule="evenodd" d="M9 4.5a.75.75 0 0 1 .721.544l.813 2.846a3.75 3.75 0 0 0 2.576 2.576l2.846.813a.75.75 0 0 1 0 1.442l-2.846.813a3.75 3.75 0 0 0-2.576 2.576l-.813 2.846a.75.75 0 0 1-1.442 0l-.813-2.846a3.75 3.75 0 0 0-2.576-2.576l-2.846-.813a.75.75 0 0 1 0-1.442l2.846-.813A3.75 3.75 0 0 0 7.466 7.89l.813-2.846A.75.75 0 0 1 9 4.5Z" clipRule="evenodd" /></svg>
+    TOP
+  </span>
+);
+const isActiveBoosted = (u: any) => u.isBoosted && (!u.boostedUntil || new Date(u.boostedUntil) > new Date());
+
+const CATEGORY_ICONS: Record<string, string> = {
+  'Mobile Phones & Tablets': '📱', 'Computers': '💻', 'Women clothes': '👗',
+  'Men clothes': '👔', 'Men shoes': '👞', 'Women shoes': '👠', 'Cars': '🚗',
+  'Herbals and supplements': '🌿', 'Houses': '🏠', 'Accesories and chargers': '🔌',
+  'Food stuffs': '🛒', 'Home, Furniture & Appliances': '🛋️', 'Electronics': '⚡',
+  'Books': '📚', 'Beauty & Personal Care': '💄', 'Vehicles': '🚙', 'Property': '🏢',
+  'Services': '🛠️', 'Babies & Kids': '👶', 'Animals & Pets': '🐾', 'Jobs': '💼',
+};
+
 interface ShopListPageProps {
   category: string;
   products: Product[];
@@ -9,119 +31,104 @@ interface ShopListPageProps {
   onBack: () => void;
 }
 
-export const ShopListPage: React.FC<ShopListPageProps> = ({
-  category,
-  products,
-  users,
-  onSelectShop,
-  onBack,
-}) => {
-  // Find unique sellers who have products in this category
-  const sellerIds = [...new Set(
-    products
-      .filter(p => p.category === category)
-      .map(p => p.sellerId)
-  )];
-
+export const ShopListPage: React.FC<ShopListPageProps> = ({ category, products, users, onSelectShop, onBack }) => {
+  const sellerIds = [...new Set(products.filter(p => p.category === category).map(p => p.sellerId))];
   const sellers = sellerIds
     .map(id => users.find(u => u.id === id))
-    .filter((u): u is User => !!u);
+    .filter((u): u is User => !!u)
+    .sort((a, b) => {
+      // Boosted sellers come first
+      const aB = isActiveBoosted(a) ? 1 : 0;
+      const bB = isActiveBoosted(b) ? 1 : 0;
+      return bB - aB;
+    });
 
-  const getSellerStats = (sellerId: string) => {
-    const sellerProducts = products.filter(
-      p => p.sellerId === sellerId && p.category === category
-    );
-    const minPrice = Math.min(...sellerProducts.map(p => p.price));
+  const getStats = (sellerId: string) => {
+    const sp = products.filter(p => p.sellerId === sellerId && p.category === category);
     return {
-      count: sellerProducts.length,
-      minPrice,
-      thumbnail: sellerProducts[0]?.images?.[0] ?? '',
+      count: sp.length,
+      minPrice: Math.min(...sp.map(p => p.price)),
+      maxPrice: Math.max(...sp.map(p => p.price)),
+      thumbnail: sp[0]?.images?.[0] ?? '',
     };
   };
 
+  const emoji = CATEGORY_ICONS[category] || '🏷️';
+
   return (
-    <div className="animate-fade-in">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center mb-8 gap-3">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 font-semibold transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-            <span>All Categories</span>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div className="bg-gradient-to-br from-orange-500 via-orange-500 to-amber-400 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+          <button onClick={onBack} className="flex items-center gap-1.5 text-orange-100 hover:text-white mb-5 text-sm font-medium transition-colors">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+            All Categories
           </button>
-          <span className="text-gray-300 dark:text-gray-600">/</span>
-          <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200 truncate">{category}</h1>
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center text-3xl shadow-lg">{emoji}</div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{category}</h1>
+              <p className="text-orange-100 mt-0.5 text-sm">
+                {sellers.length} {sellers.length === 1 ? 'seller' : 'sellers'} · {products.filter(p => p.category === category).length} listings
+              </p>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <p className="text-gray-500 dark:text-gray-400 mb-6">
-          {sellers.length} {sellers.length === 1 ? 'shop' : 'shops'} selling in this category
-        </p>
-
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {sellers.length === 0 ? (
-          <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl shadow-md">
+          <div className="text-center py-24 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
             <div className="text-5xl mb-4">🏪</div>
-            <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300">No shops yet</h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-2">Be the first to post in this category!</p>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">No sellers yet</h2>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">Be the first to list an item here!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-            {sellers.map(seller => {
-              const stats = getSellerStats(seller.id);
-              return (
-                <button
-                  key={seller.id}
-                  onClick={() => onSelectShop(seller)}
-                  className="group bg-white dark:bg-gray-800 rounded-2xl shadow-md dark:shadow-gray-700/40 overflow-hidden hover:-translate-y-1 hover:shadow-xl transition-all duration-300 text-left flex flex-col"
-                >
-                  {/* Shop Banner / Product Thumbnail */}
-                  <div className="relative h-36 bg-gradient-to-br from-orange-100 to-amber-50 dark:from-orange-900/30 dark:to-amber-900/20 overflow-hidden">
-                    {stats.thumbnail ? (
-                      <img
-                        src={stats.thumbnail}
-                        alt={`${seller.name}'s products`}
-                        className="w-full h-full object-cover opacity-70 group-hover:opacity-90 group-hover:scale-105 transition-all duration-300"
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-orange-300 dark:text-orange-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-16 h-16">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z" />
-                        </svg>
+          <>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5 font-medium">Select a seller to browse their listings</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {sellers.map(seller => {
+                const stats = getStats(seller.id);
+                return (
+                  <button key={seller.id} onClick={() => onSelectShop(seller)}
+                    className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-orange-200 dark:hover:border-orange-800/60 overflow-hidden hover:shadow-xl hover:shadow-orange-50 dark:hover:shadow-orange-900/10 transition-all duration-300 hover:-translate-y-0.5 text-left"
+                  >
+                    <div className="relative h-32 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-gray-800 dark:to-gray-900 overflow-hidden">
+                      {stats.thumbnail
+                        ? <img src={stats.thumbnail} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80" />
+                        : <div className="flex items-center justify-center h-full"><span className="text-4xl opacity-30">{emoji}</span></div>
+                      }
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                      <div className="absolute bottom-2 right-2">
+                        <span className="bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{stats.count} {stats.count === 1 ? 'item' : 'items'}</span>
                       </div>
-                    )}
-                    {/* Item count badge */}
-                    <div className="absolute top-2 right-2 bg-orange-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow">
-                      {stats.count} {stats.count === 1 ? 'item' : 'items'}
                     </div>
-                  </div>
-
-                  {/* Seller Info */}
-                  <div className="p-4 flex items-center gap-3 flex-1">
-                    <img
-                      src={seller.profilePicture}
-                      alt={seller.name}
-                      className="w-11 h-11 rounded-full object-cover ring-2 ring-orange-100 dark:ring-orange-800 flex-shrink-0"
-                    />
-                    <div className="min-w-0">
-                      <p className="font-bold text-gray-900 dark:text-gray-100 truncate text-sm">{seller.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">@{seller.username}</p>
-                      <p className="text-xs text-orange-600 font-semibold mt-0.5">
-                        From ₦{stats.minPrice.toLocaleString()}
-                      </p>
+                    <div className="p-4">
+                      <div className="flex items-center gap-3">
+                        <img src={seller.profilePicture} alt={seller.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-gray-900 shadow-sm flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1">
+                              <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{seller.name}</p>
+                              {seller.isVerified && <VerifiedBadge />}
+                              {isActiveBoosted(seller) && <BoostedBadge />}
+                            </div>
+                          <p className="text-xs text-gray-400 truncate">@{seller.username}</p>
+                        </div>
+                        <div className="text-gray-300 dark:text-gray-600 group-hover:text-orange-400 transition-colors flex-shrink-0">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                        </div>
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-gray-50 dark:border-gray-800">
+                        <p className="text-xs text-gray-400 dark:text-gray-500">Price range</p>
+                        <p className="text-sm font-bold text-orange-600 dark:text-orange-400 mt-0.5">
+                          ₦{stats.minPrice.toLocaleString()}{stats.maxPrice !== stats.minPrice && ` – ₦${stats.maxPrice.toLocaleString()}`}
+                        </p>
+                      </div>
                     </div>
-                    <div className="ml-auto text-gray-300 dark:text-gray-600 group-hover:text-orange-500 transition-colors flex-shrink-0">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                      </svg>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                  </button>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
     </div>
