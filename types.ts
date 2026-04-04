@@ -17,6 +17,9 @@ export interface User {
   profilePicture: string;
   phone?: string;
   isAdmin?: boolean;
+  isVerified?: boolean;
+  isBoosted?: boolean;
+  boostedUntil?: string | null;
 }
 
 export type Theme = 'light' | 'dark' | 'system';
