@@ -155,12 +155,12 @@ const App: React.FC = () => {
     } else showToast('Error updating picture.');
   };
 
-  const handleUpdateProfile = async (name: string, username: string) => {
+  const handleUpdateProfile = async (name: string, username: string, phone: string) => {
     if (!currentUser) return;
     if (username !== currentUser.username && users.some(u => u.username === username && u.id !== currentUser.id)) { showToast('Username already taken.'); return; }
-    const ok = await db.updateUser(currentUser.id, { name, username });
+    const ok = await db.updateUser(currentUser.id, { name, username, phone: phone || undefined });
     if (ok) {
-      const u = { ...currentUser, name, username };
+      const u = { ...currentUser, name, username, phone: phone || undefined };
       setCurrentUser(u); setUsers(users.map(x => x.id === currentUser.id ? u : x));
       showToast('Profile updated!'); window.history.back();
     } else showToast('Error updating profile.');
