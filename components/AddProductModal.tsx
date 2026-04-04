@@ -48,13 +48,14 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   }, [isOpen, productToEdit]);
 
   const resetForm = () => {
-    setTitle('');
-    setCategory(CATEGORIES[0]);
-    setPrice('');
-    setDescription('');
-    setImages([]);
-    setIsProcessing(false);
-  };
+  const savedCategory = localStorage.getItem('kano-last-category');
+  setTitle('');
+  setCategory(savedCategory && CATEGORIES.includes(savedCategory) ? savedCategory : CATEGORIES[0]);
+  setPrice('');
+  setDescription('');
+  setImages([]);
+  setIsProcessing(false);
+};
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
