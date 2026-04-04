@@ -1,21 +1,18 @@
-
 import React from 'react';
 
 interface CategoryFilterProps {
   categories: string[];
-  selectedCategory: string;
+  selectedCategory: string | null;
   setSelectedCategory: (category: string) => void;
 }
 
 export const CategoryFilter: React.FC<CategoryFilterProps> = ({ categories, selectedCategory, setSelectedCategory }) => {
-  const allCategories = ['All', ...categories];
-
   return (
     <section className="py-8">
       <div className="container mx-auto px-4">
         <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Browse Categories</h2>
         <div className="flex space-x-3 overflow-x-auto pb-4 -mx-4 px-4">
-          {allCategories.map(category => (
+          {categories.map(category => (
             <button
               key={category}
               className={`
