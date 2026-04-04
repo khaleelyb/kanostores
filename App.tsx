@@ -14,6 +14,7 @@ import { AuthPrompt } from './components/AuthPrompt';
 import { ProductDetailPage } from './components/ProductDetailPage';
 import { ShopListPage } from './components/ShopListPage';
 import { ShopProductsPage } from './components/ShopProductsPage';
+import { AdminDashboard } from './components/AdminDashboard';
 import { Toast } from './components/Toast';
 import { Product, User, Theme, Message, MessageThread, Page } from './types';
 import { CATEGORIES } from './constants';
@@ -23,8 +24,11 @@ import { MessageModal } from './components/MessageModal';
 import * as db from './services/dbService';
 import { isSupabaseConfigured } from './services/supabase_client';
 
+// ── Admin usernames – add yours here ──────────────────────────────────────────
+const ADMIN_USERNAMES = ['admin', 'superadmin'];
+// ──────────────────────────────────────────────────────────────────────────────
+
 const App: React.FC = () => {
-  // --- STATE MANAGEMENT ---
   const [products, setProducts] = useState<Product[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(db.getCurrentUser);
@@ -41,579 +45,410 @@ const App: React.FC = () => {
   const [toast, setToast] = useState<{ message: string; id: number } | null>(null);
   const [theme, setTheme] = useState<Theme>(db.getTheme);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
-
-  // Scroll Restoration
   const scrollPosition = useRef(0);
 
-  // Modal State
+  // Modals
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
-  const [authModal, setAuthModal] = useState<{isOpen: boolean, view: 'login' | 'register'}>({isOpen: false, view: 'login'});
-  const [messageModal, setMessageModal] = useState<{ isOpen: boolean, product: Product | null }>({ isOpen: false, product: null });
+  const [authModal, setAuthModal] = useState<{ isOpen: boolean; view: 'login' | 'register' }>({ isOpen: false, view: 'login' });
+  const [messageModal, setMessageModal] = useState<{ isOpen: boolean; product: Product | null }>({ isOpen: false, product: null });
 
   // --- INITIAL DATA LOAD ---
   useEffect(() => {
-    const loadInitialData = async () => {
+    const load = async () => {
       setIsLoading(true);
       try {
         const [productsData, usersData, threadsData] = await Promise.all([
-          db.getProducts(),
-          db.getUsers(),
-          db.getThreads()
+          db.getProducts(), db.getUsers(), db.getThreads()
         ]);
-        
         setProducts(productsData);
         setUsers(usersData);
         setThreads(threadsData);
-        
         if (currentUser) {
           const savedIds = await db.getSavedProductIds(currentUser.id);
           setSavedProductIds(savedIds);
         }
-      } catch (error) {
-        console.error('Error loading initial data:', error);
-        showToast('Error loading data. Please refresh the page.');
+      } catch (err) {
+        console.error(err);
+        showToast('Error loading data. Please refresh.');
       } finally {
         setIsLoading(false);
       }
     };
-
-    loadInitialData();
+    load();
   }, []);
 
-  // --- HISTORY MANAGEMENT ---
+  // --- HISTORY ---
   useEffect(() => {
-    const handlePopState = (event: PopStateEvent) => {
-      const state = event.state;
-      
-      if (!state) {
-        setSelectedProduct(null);
-        setActiveThreadId(null);
-        setSelectedCategory(null);
-        setSelectedShop(null);
-        setActivePage('home');
-        return;
-      }
-
-      if (state.page) setActivePage(state.page);
-
-      if (state.view === 'product' && state.productId) {
-        const product = products.find(p => p.id === state.productId);
-        if (product) setSelectedProduct(product);
-      } else {
-        setSelectedProduct(null);
-      }
-
-      if (state.view === 'thread' && state.threadId) {
-        setActiveThreadId(state.threadId);
-      } else {
-        setActiveThreadId(null);
-      }
-
-      if (state.view === 'shop' && state.sellerId) {
-        const seller = users.find(u => u.id === state.sellerId);
-        if (seller) setSelectedShop(seller);
-        if (state.category) setSelectedCategory(state.category);
-      } else if (state.view === 'category' && state.category) {
-        setSelectedCategory(state.category);
-        setSelectedShop(null);
-      } else if (!state.view || state.view === 'home') {
-        setSelectedCategory(null);
-        setSelectedShop(null);
-      }
+    const handlePop = (e: PopStateEvent) => {
+      const s = e.state;
+      if (!s) { setSelectedProduct(null); setActiveThreadId(null); setSelectedCategory(null); setSelectedShop(null); setActivePage('home'); return; }
+      if (s.page) setActivePage(s.page);
+      setSelectedProduct(s.view === 'product' && s.productId ? products.find(p => p.id === s.productId) ?? null : null);
+      setActiveThreadId(s.view === 'thread' ? s.threadId ?? null : null);
+      if (s.view === 'shop' && s.sellerId) { setSelectedShop(users.find(u => u.id === s.sellerId) ?? null); setSelectedCategory(s.category ?? null); }
+      else if (s.view === 'category') { setSelectedCategory(s.category ?? null); setSelectedShop(null); }
+      else if (!s.view || s.view === 'home') { setSelectedCategory(null); setSelectedShop(null); }
     };
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, [products, users, threads]);
 
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [products, threads, users]);
-
-  // --- EFFECTS ---
   useEffect(() => {
-    if (currentUser) {
-      db.saveCurrentUser(currentUser);
-      db.getSavedProductIds(currentUser.id).then(setSavedProductIds);
-    } else {
-      db.clearCurrentUser();
-      setSavedProductIds(new Set());
-    }
+    if (currentUser) { db.saveCurrentUser(currentUser); db.getSavedProductIds(currentUser.id).then(setSavedProductIds); }
+    else { db.clearCurrentUser(); setSavedProductIds(new Set()); }
   }, [currentUser]);
-  
+
   useEffect(() => {
     db.saveTheme(theme);
     if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark');
-    } else {
-        document.documentElement.classList.remove('dark');
-    }
+      document.documentElement.classList.add('dark');
+    } else { document.documentElement.classList.remove('dark'); }
   }, [theme]);
 
   useEffect(() => {
-    if (!selectedProduct && scrollPosition.current > 0) {
-        window.scrollTo(0, scrollPosition.current);
-    }
+    if (!selectedProduct && scrollPosition.current > 0) window.scrollTo(0, scrollPosition.current);
   }, [selectedProduct]);
 
-  // --- UTILS ---
-  const showToast = (message: string) => {
-    setToast({ message, id: Date.now() });
-  };
+  const showToast = (msg: string) => setToast({ message: msg, id: Date.now() });
 
-  // --- HANDLERS ---
+  // --- AUTH ---
   const handleLogin = async (data: AuthData) => {
     const user = users.find(u => u.username === data.username);
     if (user) {
-      setCurrentUser(user);
-      setAuthModal({isOpen: false, view: 'login'});
+      const withAdmin = { ...user, isAdmin: ADMIN_USERNAMES.includes(user.username) };
+      setCurrentUser(withAdmin);
+      setAuthModal({ isOpen: false, view: 'login' });
       showToast(`Welcome back, ${user.name}!`);
     } else {
       showToast('User not found. Try registering.');
     }
   };
-  
+
   const handleRegister = async (data: AuthData) => {
-    if (!isSupabaseConfigured) {
-      showToast('Supabase is not configured. Set env vars and restart.');
-      return;
-    }
-    if (users.some(u => u.username === data.username)) {
-      showToast('This username is already taken.');
-      return;
-    }
-    
-    const newUser = await db.createUser({
-      name: data.name!,
-      username: data.username!,
-      profilePicture: data.profilePicture || generateAvatar(data.name!)
-    });
-    
+    if (!isSupabaseConfigured) { showToast('Supabase is not configured.'); return; }
+    if (users.some(u => u.username === data.username)) { showToast('Username already taken.'); return; }
+    const newUser = await db.createUser({ name: data.name!, username: data.username!, profilePicture: data.profilePicture || generateAvatar(data.name!) });
     if (newUser) {
-      setUsers(prev => [newUser, ...prev]);
-      setCurrentUser(newUser);
-      setAuthModal({isOpen: false, view: 'login'});
-      showToast(`Welcome, ${newUser.name}! Your account has been created.`);
-    } else {
-      showToast('Error creating account. Please try again.');
-    }
+      const withAdmin = { ...newUser, isAdmin: ADMIN_USERNAMES.includes(newUser.username) };
+      setUsers(prev => [withAdmin, ...prev]);
+      setCurrentUser(withAdmin);
+      setAuthModal({ isOpen: false, view: 'login' });
+      showToast(`Welcome, ${newUser.name}!`);
+    } else { showToast('Error creating account.'); }
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
     window.history.pushState({ page: 'home' }, '', '#home');
-    setActivePage('home');
-    setSelectedProduct(null);
-    setSelectedCategory(null);
-    setSelectedShop(null);
-    showToast("You have been logged out.");
+    setActivePage('home'); setSelectedProduct(null); setSelectedCategory(null); setSelectedShop(null);
+    showToast('You have been logged out.');
   };
 
-  const handleUpdateProfilePicture = async (newPictureUrl: string) => {
+  const handleUpdateProfilePicture = async (url: string) => {
     if (!currentUser) return;
-    const success = await db.updateUser(currentUser.id, { profilePicture: newPictureUrl });
-    if (success) {
-      const updatedUser = { ...currentUser, profilePicture: newPictureUrl };
-      setCurrentUser(updatedUser);
-      setUsers(prevUsers => prevUsers.map(user => user.id === currentUser.id ? updatedUser : user));
+    const ok = await db.updateUser(currentUser.id, { profilePicture: url });
+    if (ok) {
+      const u = { ...currentUser, profilePicture: url };
+      setCurrentUser(u); setUsers(prev => prev.map(x => x.id === currentUser.id ? u : x));
       showToast('Profile picture updated!');
-    } else {
-      showToast('Error updating profile picture.');
-    }
+    } else showToast('Error updating picture.');
   };
-  
+
   const handleUpdateProfile = async (name: string, username: string) => {
     if (!currentUser) return;
-    if (username !== currentUser.username && users.some(u => u.username === username && u.id !== currentUser.id)) {
-        showToast("This username is already taken.");
-        return;
-    }
-    const success = await db.updateUser(currentUser.id, { name, username });
-    if (success) {
-      const updatedUser = { ...currentUser, name, username };
-      setCurrentUser(updatedUser);
-      setUsers(users.map(u => u.id === currentUser.id ? updatedUser : u));
-      showToast("Profile updated successfully!");
-      window.history.back();
-    } else {
-      showToast('Error updating profile.');
+    if (username !== currentUser.username && users.some(u => u.username === username && u.id !== currentUser.id)) { showToast('Username already taken.'); return; }
+    const ok = await db.updateUser(currentUser.id, { name, username });
+    if (ok) {
+      const u = { ...currentUser, name, username };
+      setCurrentUser(u); setUsers(users.map(x => x.id === currentUser.id ? u : x));
+      showToast('Profile updated!'); window.history.back();
+    } else showToast('Error updating profile.');
+  };
+
+  // --- PRODUCTS ---
+  const handleAddProduct = async (data: Omit<Product, 'id' | 'sellerId' | 'location' | 'date'>) => {
+    if (!currentUser) { setAuthModal({ isOpen: true, view: 'login' }); showToast('Please log in to post.'); return; }
+    const p = await db.createProduct({ ...data, sellerId: currentUser.id, location: 'Kano', date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) });
+    if (p) { setProducts(prev => [p, ...prev]); showToast('Ad posted successfully!'); }
+    else showToast('Error posting ad.');
+  };
+
+  const handleUpdateProduct = async (updated: Product) => {
+    const ok = await db.updateProduct(updated.id, updated);
+    if (ok) { setProducts(products.map(p => p.id === updated.id ? updated : p)); showToast('Ad updated.'); setProductToEdit(null); }
+    else showToast('Error updating ad.');
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    if (window.confirm('Delete this listing?')) {
+      const ok = await db.deleteProduct(id);
+      if (ok) { setProducts(products.filter(p => p.id !== id)); showToast('Listing deleted.'); }
+      else showToast('Error deleting listing.');
     }
   };
 
-  const handleAddProduct = async (productData: Omit<Product, 'id' | 'sellerId' | 'location' | 'date'>) => {
-    if (!currentUser) {
-        showToast('You must be logged in to post an ad.');
-        setAuthModal({isOpen: true, view: 'login'});
-        return;
-    }
-    const newProduct = await db.createProduct({
-      ...productData,
-      sellerId: currentUser.id,
-      location: 'Kano',
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    });
-    if (newProduct) {
-      setProducts(prev => [newProduct, ...prev]);
-      showToast('Your ad has been posted successfully!');
-    } else {
-      showToast('Error posting ad. Please try again.');
-    }
+  // Admin delete (no confirm dialog — admin dashboard has its own)
+  const handleAdminDeleteProduct = async (id: string) => {
+    const ok = await db.deleteProduct(id);
+    if (ok) { setProducts(products.filter(p => p.id !== id)); showToast('Product deleted.'); }
+    else showToast('Error deleting product.');
   };
 
-  const handleUpdateProduct = async (updatedProduct: Product) => {
-    const success = await db.updateProduct(updatedProduct.id, updatedProduct);
-    if (success) {
-      setProducts(products.map(p => p.id === updatedProduct.id ? updatedProduct : p));
-      showToast('Your ad has been updated.');
-      setProductToEdit(null);
-    } else {
-      showToast('Error updating ad.');
-    }
-  };
-  
-  const handleDeleteProduct = async (productId: string) => {
-    if (window.confirm('Are you sure you want to delete this ad?')) {
-        const success = await db.deleteProduct(productId);
-        if (success) {
-          setProducts(products.filter(p => p.id !== productId));
-          showToast('Ad deleted successfully.');
-        } else {
-          showToast('Error deleting ad.');
-        }
-    }
+  const handleAdminDeleteUser = async (id: string) => {
+    // Delete user's products first, then the user
+    const userProducts = products.filter(p => p.sellerId === id);
+    await Promise.all(userProducts.map(p => db.deleteProduct(p.id)));
+    const ok = await db.updateUser(id, {}); // Soft approach; ideally call db.deleteUser
+    setProducts(products.filter(p => p.sellerId !== id));
+    setUsers(users.filter(u => u.id !== id));
+    showToast('User removed.');
   };
 
-  const handleEditProduct = (product: Product) => {
-    setProductToEdit(product);
-    setIsAddProductModalOpen(true);
-  };
-
+  // --- SAVE / TOGGLE ---
   const handleToggleSave = async (productId: string) => {
-    if (!currentUser) {
-        setAuthModal({ isOpen: true, view: 'login' });
-        showToast('Please log in to save products.');
-        return;
-    }
+    if (!currentUser) { setAuthModal({ isOpen: true, view: 'login' }); showToast('Log in to save items.'); return; }
     const isSaved = savedProductIds.has(productId);
     if (isSaved) {
-      const success = await db.unsaveProduct(currentUser.id, productId);
-      if (success) {
-        const newSaved = new Set(savedProductIds);
-        newSaved.delete(productId);
-        setSavedProductIds(newSaved);
-        showToast('Product unsaved.');
-      }
+      const ok = await db.unsaveProduct(currentUser.id, productId);
+      if (ok) { const s = new Set(savedProductIds); s.delete(productId); setSavedProductIds(s); showToast('Removed from saved.'); }
     } else {
-      const success = await db.saveProduct(currentUser.id, productId);
-      if (success) {
-        const newSaved = new Set(savedProductIds);
-        newSaved.add(productId);
-        setSavedProductIds(newSaved);
-        showToast('Product saved!');
-      }
+      const ok = await db.saveProduct(currentUser.id, productId);
+      if (ok) { const s = new Set(savedProductIds); s.add(productId); setSavedProductIds(s); showToast('Saved!'); }
     }
-  };
-  
-  const handlePostAdClick = () => {
-    if (!currentUser) {
-        setAuthModal({isOpen: true, view: 'login'});
-        showToast("Please log in to post an ad.");
-        return;
-    }
-    setProductToEdit(null);
-    setIsAddProductModalOpen(true);
   };
 
-  // Category selected → navigate to shop list
+  // --- NAVIGATION ---
+  const handlePostAdClick = () => {
+    if (!currentUser) { setAuthModal({ isOpen: true, view: 'login' }); return; }
+    setProductToEdit(null); setIsAddProductModalOpen(true);
+  };
+
   const handleSelectCategory = (category: string) => {
     scrollPosition.current = window.scrollY;
     window.history.pushState({ view: 'category', category, page: 'home' }, '', `#category=${encodeURIComponent(category)}`);
-    setSelectedCategory(category);
-    setSelectedShop(null);
-    setSelectedProduct(null);
+    setSelectedCategory(category); setSelectedShop(null); setSelectedProduct(null);
   };
-  
+
   const handleSelectShop = (seller: User) => {
     if (!selectedCategory) return;
-    window.history.pushState(
-      { view: 'shop', sellerId: seller.id, category: selectedCategory, page: 'home' },
-      '',
-      `#shop=${seller.id}`
-    );
+    window.history.pushState({ view: 'shop', sellerId: seller.id, category: selectedCategory, page: 'home' }, '', `#shop=${seller.id}`);
     setSelectedShop(seller);
   };
 
   const handleSelectProduct = (product: Product) => {
-      scrollPosition.current = window.scrollY;
-      window.history.pushState({ view: 'product', productId: product.id, page: activePage }, '', `#product=${product.id}`);
-      setSelectedProduct(product);
+    scrollPosition.current = window.scrollY;
+    window.history.pushState({ view: 'product', productId: product.id, page: activePage }, '', `#product=${product.id}`);
+    setSelectedProduct(product);
   };
 
   const handleMessageSeller = (product: Product) => {
-    if (!currentUser) {
-        setAuthModal({ isOpen: true, view: 'login' });
-        showToast('Please log in to message sellers.');
-        return;
-    }
-    if (currentUser.id === product.sellerId) {
-        showToast("You cannot message yourself.");
-        return;
-    }
+    if (!currentUser) { setAuthModal({ isOpen: true, view: 'login' }); return; }
+    if (currentUser.id === product.sellerId) { showToast("You can't message yourself."); return; }
     setMessageModal({ isOpen: true, product });
   };
-  
-  const handleSendMessage = async (messageText: string) => {
+
+  const handleSendMessage = async (text: string) => {
     if (!currentUser || !messageModal.product) return;
     const { product } = messageModal;
     const participants: [string, string] = [currentUser.id, product.sellerId].sort() as [string, string];
     const threadId = `${product.id}-${participants[0]}-${participants[1]}`;
-    const newMessage: Message = {
-        id: Date.now().toString(),
-        senderId: currentUser.id,
-        text: messageText,
-        timestamp: Date.now(),
-    };
-    const existingThread = threads.find(t => t.id === threadId);
-    if (existingThread) {
-        const createdMessage = await db.createMessage(newMessage, threadId);
-        if (createdMessage) {
-          setThreads(threads.map(t => t.id === threadId ? {
-              ...t,
-              messages: [...t.messages, createdMessage],
-              lastMessageTimestamp: createdMessage.timestamp,
-          } : t));
-        }
+    const msg: Message = { id: Date.now().toString(), senderId: currentUser.id, text, timestamp: Date.now() };
+    const existing = threads.find(t => t.id === threadId);
+    if (existing) {
+      const created = await db.createMessage(msg, threadId);
+      if (created) setThreads(threads.map(t => t.id === threadId ? { ...t, messages: [...t.messages, created], lastMessageTimestamp: created.timestamp } : t));
     } else {
-        const newThread = await db.createThread({
-            id: threadId,
-            productId: product.id,
-            productTitle: product.title,
-            participants,
-            lastMessageTimestamp: newMessage.timestamp,
-        });
-        if (newThread) {
-          const createdMessage = await db.createMessage(newMessage, threadId);
-          if (createdMessage) {
-            setThreads(prev => [...prev, { ...newThread, messages: [createdMessage] }]);
-          }
-        }
+      const thread = await db.createThread({ id: threadId, productId: product.id, productTitle: product.title, participants, lastMessageTimestamp: msg.timestamp });
+      if (thread) { const created = await db.createMessage(msg, threadId); if (created) setThreads(prev => [...prev, { ...thread, messages: [created] }]); }
     }
     setMessageModal({ isOpen: false, product: null });
     showToast('Message sent!');
-    window.history.pushState({ page: 'messages' }, '', '#messages');
-    setActivePage('messages');
-    window.history.pushState({ view: 'thread', threadId, page: 'messages' }, '', `#thread=${threadId}`);
-    setActiveThreadId(threadId);
+    window.history.pushState({ page: 'messages' }, '', '#messages'); setActivePage('messages');
+    window.history.pushState({ view: 'thread', threadId, page: 'messages' }, '', `#thread=${threadId}`); setActiveThreadId(threadId);
   };
 
   const handleSendMessageInChat = async (text: string, threadId: string) => {
     if (!currentUser) return;
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      senderId: currentUser.id,
-      text,
-      timestamp: Date.now(),
-    };
-    const createdMessage = await db.createMessage(newMessage, threadId);
-    if (createdMessage) {
-      setThreads(threads.map(t => t.id === threadId ? {
-        ...t,
-        messages: [...t.messages, createdMessage],
-        lastMessageTimestamp: createdMessage.timestamp,
-      } : t));
-    }
+    const msg: Message = { id: Date.now().toString(), senderId: currentUser.id, text, timestamp: Date.now() };
+    const created = await db.createMessage(msg, threadId);
+    if (created) setThreads(threads.map(t => t.id === threadId ? { ...t, messages: [...t.messages, created], lastMessageTimestamp: created.timestamp } : t));
   };
 
   const handleThreadSelect = (threadId: string) => {
-      window.history.pushState({ view: 'thread', threadId, page: activePage }, '', `#thread=${threadId}`);
-      setActiveThreadId(threadId);
+    window.history.pushState({ view: 'thread', threadId, page: activePage }, '', `#thread=${threadId}`);
+    setActiveThreadId(threadId);
   };
 
   const handlePageChange = (page: Page) => {
     if (activePage === page && !selectedProduct && !activeThreadId && !selectedCategory) return;
     window.history.pushState({ page }, '', `#${page}`);
-    setSelectedProduct(null);
-    setActiveThreadId(null);
-    setSelectedCategory(null);
-    setSelectedShop(null);
-    setActivePage(page);
-  };
-  
-  const handleBack = () => {
-      window.history.back();
+    setSelectedProduct(null); setActiveThreadId(null); setSelectedCategory(null); setSelectedShop(null); setActivePage(page);
   };
 
-  // When search is used, exit category/shop view and go back to home grid
-  const handleSearchChange = (query: string) => {
-    setSearchQuery(query);
-    if (query && (selectedCategory || selectedShop || selectedProduct)) {
-      setSelectedCategory(null);
-      setSelectedShop(null);
-      setSelectedProduct(null);
-      setActivePage('home');
+  const handleBack = () => window.history.back();
+
+  const handleSearchChange = (q: string) => {
+    setSearchQuery(q);
+    if (q && (selectedCategory || selectedShop || selectedProduct)) {
+      setSelectedCategory(null); setSelectedShop(null); setSelectedProduct(null); setActivePage('home');
     }
   };
 
-  // --- COMPUTED VALUES ---
+  // --- COMPUTED ---
   const filteredProducts = useMemo(() => {
-    // Search mode: search across all products
-    if (searchQuery) {
-      return products.filter(product => {
-        return product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          product.description.toLowerCase().includes(searchQuery.toLowerCase());
-      });
-    }
-    return products;
+    if (!searchQuery) return products;
+    return products.filter(p =>
+      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.description.toLowerCase().includes(searchQuery.toLowerCase())
+    );
   }, [products, searchQuery]);
-  
-  const savedProducts = useMemo(() => {
-    return products.filter(p => savedProductIds.has(p.id));
-  }, [products, savedProductIds]);
 
-  const userProducts = useMemo(() => {
-    return currentUser ? products.filter(p => p.sellerId === currentUser.id) : [];
-  }, [products, currentUser]);
-  
+  const savedProducts = useMemo(() => products.filter(p => savedProductIds.has(p.id)), [products, savedProductIds]);
+  const userProducts = useMemo(() => currentUser ? products.filter(p => p.sellerId === currentUser.id) : [], [products, currentUser]);
   const activeThread = threads.find(t => t.id === activeThreadId);
 
-  // --- RENDER LOGIC ---
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-950">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-400 animate-pulse shadow-lg shadow-orange-200 dark:shadow-orange-900/40" />
+          <p className="text-sm text-gray-400 font-medium">Loading marketplace…</p>
+        </div>
       </div>
     );
   }
 
   const renderPage = () => {
-    // Product detail view (top priority)
+    // Product detail
     if (selectedProduct) {
-        const seller = users.find(u => u.id === selectedProduct.sellerId);
-        return <ProductDetailPage 
-            product={selectedProduct} 
-            seller={seller || null}
-            onClose={handleBack}
-            onMessageSeller={handleMessageSeller}
-            isSaved={savedProductIds.has(selectedProduct.id)}
-            onToggleSave={() => handleToggleSave(selectedProduct.id)}
-        />;
+      const seller = users.find(u => u.id === selectedProduct.sellerId);
+      return <ProductDetailPage product={selectedProduct} seller={seller ?? null} onClose={handleBack} onMessageSeller={handleMessageSeller} isSaved={savedProductIds.has(selectedProduct.id)} onToggleSave={() => handleToggleSave(selectedProduct.id)} />;
     }
 
-    // Chat view
+    // Chat
     if (activeThread) {
-        const otherParticipantId = activeThread.participants.find(p => p !== currentUser?.id);
-        const participant = users.find(u => u.id === otherParticipantId);
-        if (!currentUser || !participant) return null;
-        return <ChatView 
-            thread={activeThread}
-            currentUser={currentUser}
-            participant={participant}
-            onClose={handleBack}
-            onSendMessage={(text) => handleSendMessageInChat(text, activeThread.id)}
-        />;
+      const otherId = activeThread.participants.find(p => p !== currentUser?.id);
+      const participant = users.find(u => u.id === otherId);
+      if (!currentUser || !participant) return null;
+      return <ChatView thread={activeThread} currentUser={currentUser} participant={participant} onClose={handleBack} onSendMessage={text => handleSendMessageInChat(text, activeThread.id)} />;
     }
 
-    // Non-home pages
     switch (activePage) {
-        case 'saved':
-            return currentUser ? <SavedPage products={savedProducts} onMessageSeller={handleMessageSeller} savedProductIds={savedProductIds} onToggleSave={handleToggleSave} onSelectProduct={handleSelectProduct} /> : <AuthPrompt page="saved" onLoginClick={() => setAuthModal({isOpen: true, view: 'login'})} />;
-        case 'messages':
-            return currentUser ? <MessagesPage threads={threads} currentUser={currentUser} users={users} onSelectThread={handleThreadSelect} /> : <AuthPrompt page="messages" onLoginClick={() => setAuthModal({isOpen: true, view: 'login'})} />;
-        case 'profile':
-            return currentUser ? <ProfilePage currentUser={currentUser} onLogout={handleLogout} onUpdateProfilePicture={handleUpdateProfilePicture} setActivePage={handlePageChange} userProducts={userProducts} onMessageSeller={handleMessageSeller} savedProductIds={savedProductIds} onToggleSave={handleToggleSave} onSelectProduct={handleSelectProduct} onEditProduct={handleEditProduct} onDeleteProduct={handleDeleteProduct} theme={theme} setTheme={setTheme} /> : <AuthPrompt page="profile" onLoginClick={() => setAuthModal({isOpen: true, view: 'login'})} />;
-        case 'edit-profile':
-            return currentUser ? <EditProfilePage currentUser={currentUser} onSaveChanges={handleUpdateProfile} onClose={handleBack} /> : <AuthPrompt page="edit-profile" onLoginClick={() => setAuthModal({isOpen: true, view: 'login'})} />;
-        case 'home':
-        default:
-            // Search mode: show flat product list
-            if (searchQuery) {
-              return (
-                <>
-                  <div className="container mx-auto px-4 pt-6 pb-2">
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">
-                      Showing results for <span className="font-semibold text-gray-800 dark:text-gray-200">"{searchQuery}"</span> — {filteredProducts.length} {filteredProducts.length === 1 ? 'result' : 'results'}
-                    </p>
-                  </div>
-                  <ProductGrid products={filteredProducts} onMessageSeller={handleMessageSeller} savedProductIds={savedProductIds} onToggleSave={handleToggleSave} onSelectProduct={handleSelectProduct} />
-                </>
-              );
-            }
+      case 'admin':
+        return currentUser?.isAdmin
+          ? <AdminDashboard products={products} users={users} currentUser={currentUser} onDeleteProduct={handleAdminDeleteProduct} onDeleteUser={handleAdminDeleteUser} onBack={handleBack} />
+          : <AuthPrompt page="home" onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })} />;
 
-            // Shop products view
-            if (selectedShop && selectedCategory) {
-              return (
-                <ShopProductsPage
-                  seller={selectedShop}
-                  category={selectedCategory}
-                  products={products}
-                  savedProductIds={savedProductIds}
-                  onToggleSave={handleToggleSave}
-                  onSelectProduct={handleSelectProduct}
-                  onMessageSeller={handleMessageSeller}
-                  onBack={handleBack}
-                />
-              );
-            }
+      case 'saved':
+        return currentUser
+          ? <SavedPage products={savedProducts} onMessageSeller={handleMessageSeller} savedProductIds={savedProductIds} onToggleSave={handleToggleSave} onSelectProduct={handleSelectProduct} />
+          : <AuthPrompt page="saved" onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })} />;
 
-            // Shop list view (category selected)
-            if (selectedCategory) {
-              return (
-                <ShopListPage
-                  category={selectedCategory}
-                  products={products}
-                  users={users}
-                  onSelectShop={handleSelectShop}
-                  onBack={handleBack}
-                />
-              );
-            }
+      case 'messages':
+        return currentUser
+          ? <MessagesPage threads={threads} currentUser={currentUser} users={users} onSelectThread={handleThreadSelect} />
+          : <AuthPrompt page="messages" onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })} />;
 
-            // Default home: category filter + all products grid
-            return (
-                <>
-                    <CategoryFilter
-                      categories={CATEGORIES}
-                      selectedCategory={null}
-                      setSelectedCategory={handleSelectCategory}
-                    />
-                    <ProductGrid products={products} onMessageSeller={handleMessageSeller} savedProductIds={savedProductIds} onToggleSave={handleToggleSave} onSelectProduct={handleSelectProduct} />
-                </>
-            );
+      case 'profile':
+        return currentUser
+          ? <ProfilePage currentUser={currentUser} onLogout={handleLogout} onUpdateProfilePicture={handleUpdateProfilePicture} setActivePage={handlePageChange} userProducts={userProducts} onMessageSeller={handleMessageSeller} savedProductIds={savedProductIds} onToggleSave={handleToggleSave} onSelectProduct={handleSelectProduct} onEditProduct={p => { setProductToEdit(p); setIsAddProductModalOpen(true); }} onDeleteProduct={handleDeleteProduct} theme={theme} setTheme={setTheme} />
+          : <AuthPrompt page="profile" onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })} />;
+
+      case 'edit-profile':
+        return currentUser
+          ? <EditProfilePage currentUser={currentUser} onSaveChanges={handleUpdateProfile} onClose={handleBack} />
+          : <AuthPrompt page="edit-profile" onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })} />;
+
+      case 'home':
+      default:
+        // Search results
+        if (searchQuery) {
+          return (
+            <div className="max-w-7xl mx-auto px-4 sm:px-6">
+              <div className="pt-6 pb-2">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">{filteredProducts.length} results</span> for "{searchQuery}"
+                </p>
+              </div>
+              <ProductGrid products={filteredProducts} onMessageSeller={handleMessageSeller} savedProductIds={savedProductIds} onToggleSave={handleToggleSave} onSelectProduct={handleSelectProduct} />
+            </div>
+          );
+        }
+
+        if (selectedShop && selectedCategory) {
+          return <ShopProductsPage seller={selectedShop} category={selectedCategory} products={products} savedProductIds={savedProductIds} onToggleSave={handleToggleSave} onSelectProduct={handleSelectProduct} onMessageSeller={handleMessageSeller} onBack={handleBack} />;
+        }
+
+        if (selectedCategory) {
+          return <ShopListPage category={selectedCategory} products={products} users={users} onSelectShop={handleSelectShop} onBack={handleBack} />;
+        }
+
+        return (
+          <>
+            <CategoryFilter categories={CATEGORIES} selectedCategory={null} setSelectedCategory={handleSelectCategory} />
+            {/* Hero strip */}
+            <div className="bg-gradient-to-r from-orange-500 to-amber-400 text-white">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Find great deals in Kano</h2>
+                  <p className="text-orange-100 mt-1 text-sm">{products.length.toLocaleString()} active listings from local sellers</p>
+                </div>
+                <button
+                  onClick={handlePostAdClick}
+                  className="flex-shrink-0 bg-white text-orange-600 font-bold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl hover:bg-orange-50 transition-all"
+                >
+                  + Post Free Ad
+                </button>
+              </div>
+            </div>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Latest Listings</h3>
+            </div>
+            <ProductGrid products={products} onMessageSeller={handleMessageSeller} savedProductIds={savedProductIds} onToggleSave={handleToggleSave} onSelectProduct={handleSelectProduct} />
+          </>
+        );
     }
   };
 
+  // Hide header/footer/nav on admin page
+  const isAdmin = activePage === 'admin';
+
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header
-        searchQuery={searchQuery}
-        setSearchQuery={handleSearchChange}
-        onPostAdClick={handlePostAdClick}
-        activePage={activePage}
-        setActivePage={handlePageChange}
-        currentUser={currentUser}
-        onLoginClick={() => setAuthModal({isOpen: true, view: 'login'})}
-      />
-      <main className="flex-grow pb-16 md:pb-0">
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-950" style={{ fontFamily: "'DM Sans', 'Segoe UI', sans-serif" }}>
+      {!isAdmin && (
+        <Header
+          searchQuery={searchQuery}
+          setSearchQuery={handleSearchChange}
+          onPostAdClick={handlePostAdClick}
+          activePage={activePage}
+          setActivePage={handlePageChange}
+          currentUser={currentUser}
+          onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })}
+        />
+      )}
+      <main className={`flex-grow ${!isAdmin ? 'pb-16 md:pb-0' : ''}`}>
         {renderPage()}
       </main>
-      <Footer />
-      <BottomNav 
-        onPostAdClick={handlePostAdClick}
-        activePage={activePage}
-        setActivePage={handlePageChange}
-      />
-      <AddProductModal 
-        isOpen={isAddProductModalOpen} 
-        onClose={() => {setIsAddProductModalOpen(false); setProductToEdit(null);}} 
+      {!isAdmin && <Footer />}
+      {!isAdmin && (
+        <BottomNav onPostAdClick={handlePostAdClick} activePage={activePage} setActivePage={handlePageChange} />
+      )}
+      <AddProductModal
+        isOpen={isAddProductModalOpen}
+        onClose={() => { setIsAddProductModalOpen(false); setProductToEdit(null); }}
         onAddProduct={handleAddProduct}
         onUpdateProduct={handleUpdateProduct}
         productToEdit={productToEdit}
       />
-      <AuthModal 
-        isOpen={authModal.isOpen} 
-        onClose={() => setAuthModal({isOpen: false, view: 'login'})} 
-        onLogin={handleLogin} 
+      <AuthModal
+        isOpen={authModal.isOpen}
+        onClose={() => setAuthModal({ isOpen: false, view: 'login' })}
+        onLogin={handleLogin}
         onRegister={handleRegister}
         initialView={authModal.view}
       />
-       {messageModal.isOpen && messageModal.product && (
+      {messageModal.isOpen && messageModal.product && (
         <MessageModal
           isOpen={messageModal.isOpen}
           onClose={() => setMessageModal({ isOpen: false, product: null })}
