@@ -12,12 +12,23 @@ interface ProductDetailPageProps {
 }
 
 export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
-  product, seller, onClose, onMessageSeller, isSaved, onToggleSave
+  product, seller, onClose, onMessageSeller, isSaved, onToggleSave,
 }) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   const images = product.images && product.images.length > 0 ? product.images : [];
+
+  // Normalise phone: strip spaces/dashes, ensure it starts with + or digits
+  const rawPhone = seller?.phone?.trim() ?? '';
+  const dialPhone = rawPhone.replace(/[\s\-()]/g, '');
+  // WhatsApp needs country code without leading +, e.g. 2348012345678
+  const waPhone = dialPhone.startsWith('+') ? dialPhone.slice(1) : dialPhone;
+  const hasPhone = dialPhone.length >= 7;
+
+  const whatsappMessage = encodeURIComponent(
+    `Hi, I'm interested in your "${product.title}" listed on Kano Market. Is it still available?`
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -27,21 +38,22 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           onClick={onClose}
           className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 text-sm font-medium transition-colors"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+          <svg fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
           </svg>
           Back to results
         </button>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-12">
-        {/* ── IMAGE SECTION (always first / top) ── */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-16">
+
+        {/* ── IMAGE (always first / top) ── */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 mb-4">
           {/* Main image */}
           <div
             className="relative cursor-zoom-in bg-gray-100 dark:bg-gray-800 overflow-hidden"
             style={{ aspectRatio: '16/9' }}
-            onClick={() => setIsLightboxOpen(true)}
+            onClick={() => images.length > 0 && setIsLightboxOpen(true)}
           >
             {images.length > 0 ? (
               <img
@@ -57,13 +69,14 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </div>
             )}
 
-            {/* Expand hint */}
-            <div className="absolute bottom-3 right-3 bg-black/40 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
-              </svg>
-              Tap to expand
-            </div>
+            {images.length > 0 && (
+              <div className="absolute bottom-3 right-3 bg-black/40 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 pointer-events-none">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                </svg>
+                Tap to expand
+              </div>
+            )}
           </div>
 
           {/* Thumbnails */}
@@ -86,11 +99,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           )}
         </div>
 
-        {/* ── DETAILS SECTION ── */}
+        {/* ── DETAILS ── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
           {/* Left: title + description */}
           <div className="md:col-span-2 space-y-4">
-            {/* Title card */}
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
               <span className="inline-block text-xs font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-2.5 py-0.5 rounded-full mb-3">
                 {product.category}
@@ -98,7 +111,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white leading-snug">{product.title}</h1>
               <p className="text-3xl font-bold text-orange-500 mt-3">₦{product.price.toLocaleString()}</p>
               <div className="flex items-center gap-1.5 mt-3 text-sm text-gray-400 dark:text-gray-500">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
                 </svg>
@@ -106,35 +119,86 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </div>
             </div>
 
-            {/* Description */}
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
               <h2 className="text-base font-bold text-gray-800 dark:text-gray-200 mb-3">Description</h2>
               <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed whitespace-pre-wrap">{product.description}</p>
             </div>
           </div>
 
-          {/* Right: seller + actions */}
+          {/* Right: actions + seller */}
           <div className="space-y-4">
-            {/* Action card */}
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 md:sticky md:top-24">
-              <div className="flex gap-3">
+
+              {/* ── CONTACT BUTTONS ── */}
+              <div className="space-y-2.5">
+
+                {/* In-app message */}
                 <button
                   onClick={() => onMessageSeller(product)}
-                  className="flex-1 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-bold py-3 rounded-xl transition-colors shadow-md shadow-orange-200 dark:shadow-orange-900/30 text-sm"
+                  className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-bold py-3 rounded-xl transition-colors shadow-md shadow-orange-200 dark:shadow-orange-900/30 text-sm"
                 >
-                  Message Seller
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                  </svg>
+                  Message on App
                 </button>
+
+                {/* WhatsApp */}
+                {hasPhone ? (
+                  <a
+                    href={`https://wa.me/${waPhone}?text=${whatsappMessage}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] active:bg-[#19a852] text-white font-bold py-3 rounded-xl transition-colors shadow-md shadow-green-200 dark:shadow-green-900/30 text-sm"
+                  >
+                    {/* WhatsApp icon */}
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+                    </svg>
+                    WhatsApp Seller
+                  </a>
+                ) : (
+                  <div className="w-full flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 font-semibold py-3 rounded-xl text-sm cursor-not-allowed select-none">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+                    </svg>
+                    WhatsApp not available
+                  </div>
+                )}
+
+                {/* Call */}
+                {hasPhone ? (
+                  <a
+                    href={`tel:${dialPhone}`}
+                    className="w-full flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors shadow-md shadow-blue-200 dark:shadow-blue-900/30 text-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+                    </svg>
+                    Call Seller
+                  </a>
+                ) : (
+                  <div className="w-full flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 font-semibold py-3 rounded-xl text-sm cursor-not-allowed select-none">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+                    </svg>
+                    Phone not available
+                  </div>
+                )}
+
+                {/* Save */}
                 <button
                   onClick={onToggleSave}
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all border ${
+                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
                     isSaved
                       ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-500'
-                      : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 hover:text-orange-500 hover:border-orange-200'
+                      : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-orange-200 hover:text-orange-500'
                   }`}
                 >
-                  <svg viewBox="0 0 24 24" strokeWidth={2} className="w-5 h-5" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor">
+                  <svg viewBox="0 0 24 24" strokeWidth={2} className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
                   </svg>
+                  {isSaved ? 'Saved' : 'Save listing'}
                 </button>
               </div>
 
@@ -148,9 +212,17 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                       alt={seller.name}
                       className="w-12 h-12 rounded-xl object-cover ring-2 ring-orange-50 dark:ring-orange-900/20 flex-shrink-0"
                     />
-                    <div>
-                      <p className="font-bold text-gray-900 dark:text-white text-sm">{seller.name}</p>
-                      <p className="text-xs text-gray-400">@{seller.username}</p>
+                    <div className="min-w-0">
+                      <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{seller.name}</p>
+                      <p className="text-xs text-gray-400 truncate">@{seller.username}</p>
+                      {hasPhone && (
+                        <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                          <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+                          </svg>
+                          {rawPhone}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
