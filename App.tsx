@@ -162,7 +162,7 @@ const App: React.FC = () => {
     if (ok) {
       const u = { ...currentUser, name, username, phone: phone || undefined, bio: bio || undefined };
       setCurrentUser(u); setUsers(users.map(x => x.id === currentUser.id ? u : x));
-      showToast('Profile updated!'); window.history.back();
+      showToast('Profile updated!');
     } else showToast('Error updating profile.');
 };
 
