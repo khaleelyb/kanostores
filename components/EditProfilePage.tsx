@@ -3,7 +3,7 @@ import { User } from '../types';
 
 interface EditProfilePageProps {
     currentUser: User;
-    onSaveChanges: (name: string, username: string, phone: string) => void;
+    onSaveChanges: (name: string, username: string, phone: string, bio: string) => void;
     onClose: () => void;
 }
 
