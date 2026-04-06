@@ -16,6 +16,7 @@ export interface User {
   username: string;
   profilePicture: string;
   phone?: string;
+  bio?: string;          // ← add this
   isAdmin?: boolean;
   isVerified?: boolean;
   isBoosted?: boolean;
