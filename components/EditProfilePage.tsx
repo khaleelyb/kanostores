@@ -104,7 +104,23 @@ onSaveChanges(name, username, phone, bio);
                                 Buyers will be able to call or WhatsApp you directly on this number.
                             </p>
                         </div>
-
+{/* Bio */}
+<div>
+    <label htmlFor="bio" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+        Shop Bio
+        <span className="ml-1.5 text-xs font-normal text-gray-400">(optional)</span>
+    </label>
+    <textarea
+        id="bio"
+        value={bio}
+        onChange={e => setBio(e.target.value)}
+        rows={3}
+        maxLength={200}
+        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all resize-none"
+        placeholder="Tell buyers about your shop…"
+    />
+    <p className="mt-1 text-xs text-right text-gray-400">{bio.length}/200</p>
+</div>
                         <div className="pt-2">
                             <button
                                 type="submit"
