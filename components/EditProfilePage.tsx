@@ -11,7 +11,10 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, o
     const [name, setName] = useState(currentUser.name);
     const [username, setUsername] = useState(currentUser.username);
     const [phone, setPhone] = useState(currentUser.phone ?? '');
+const [bio, setBio] = useState(currentUser.bio ?? '');
 
+// update handleSubmit call:
+onSaveChanges(name, username, phone, bio);
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (name.trim() === '' || username.trim() === '') {
