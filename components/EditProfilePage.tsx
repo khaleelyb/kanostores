@@ -3,7 +3,7 @@ import { User } from '../types';
 
 interface EditProfilePageProps {
     currentUser: User;
-    onSaveChanges: (name: string, username: string, phone: string, bio: string) => void;
+    onSaveChanges: (name: string, username: string, phone: string) => Promise<void>;
     onClose: () => void;
 }
 
@@ -11,17 +11,18 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({ currentUser, o
     const [name, setName] = useState(currentUser.name);
     const [username, setUsername] = useState(currentUser.username);
     const [phone, setPhone] = useState(currentUser.phone ?? '');
-const [bio, setBio] = useState(currentUser.bio ?? '');
+    const [isSaving, setIsSaving] = useState(false);
 
-// update handleSubmit call:
-onSaveChanges(name, username, phone, bio);
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (name.trim() === '' || username.trim() === '') {
             alert('Name and username cannot be empty.');
             return;
         }
-        onSaveChanges(name, username, phone);
+        setIsSaving(true);
+        await onSaveChanges(name, username, phone);
+        setIsSaving(false);
+        onClose();
     };
 
     return (
@@ -104,29 +105,24 @@ onSaveChanges(name, username, phone, bio);
                                 Buyers will be able to call or WhatsApp you directly on this number.
                             </p>
                         </div>
-{/* Bio */}
-<div>
-    <label htmlFor="bio" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-        Shop Bio
-        <span className="ml-1.5 text-xs font-normal text-gray-400">(optional)</span>
-    </label>
-    <textarea
-        id="bio"
-        value={bio}
-        onChange={e => setBio(e.target.value)}
-        rows={3}
-        maxLength={200}
-        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all resize-none"
-        placeholder="Tell buyers about your shop…"
-    />
-    <p className="mt-1 text-xs text-right text-gray-400">{bio.length}/200</p>
-</div>
+
                         <div className="pt-2">
                             <button
                                 type="submit"
-                                className="w-full bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-bold py-3 rounded-xl transition-colors shadow-md shadow-orange-200 dark:shadow-orange-900/30"
+                                disabled={isSaving}
+                                className="w-full bg-orange-500 hover:bg-orange-600 active:bg-orange-700 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition-colors shadow-md shadow-orange-200 dark:shadow-orange-900/30 flex items-center justify-center gap-2"
                             >
-                                Save Changes
+                                {isSaving ? (
+                                    <>
+                                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                        </svg>
+                                        Saving…
+                                    </>
+                                ) : (
+                                    'Save Changes'
+                                )}
                             </button>
                         </div>
                     </form>
