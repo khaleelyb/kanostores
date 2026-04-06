@@ -25,6 +25,7 @@ const rowToUser = (u: any): User => ({
     username: u.username,
     profilePicture: u.profile_picture,
     phone: u.phone ?? undefined,
+    bio: u.bio ?? undefined,          // ← add
     isVerified: u.is_verified ?? false,
     isBoosted: u.is_boosted ?? false,
     boostedUntil: u.boosted_until ?? null,
