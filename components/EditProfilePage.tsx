@@ -21,7 +21,7 @@ onSaveChanges(name, username, phone, bio);
             alert('Name and username cannot be empty.');
             return;
         }
-        onSaveChanges(name, username, phone);
+        onSaveChanges(name, username, phone, bio);
     };
 
     return (
