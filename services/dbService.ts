@@ -58,6 +58,7 @@ export const updateUser = async (userId: string, updates: Partial<User>): Promis
         if (updates.username !== undefined)        payload.username = updates.username;
         if (updates.profilePicture !== undefined)  payload.profile_picture = updates.profilePicture;
         if (updates.phone !== undefined)           payload.phone = updates.phone || null;
+        if (updates.bio !== undefined) payload.bio = updates.bio || null;
         if (updates.isVerified !== undefined)      payload.is_verified = updates.isVerified;
         if (updates.isBoosted !== undefined)       payload.is_boosted = updates.isBoosted;
         if (updates.boostedUntil !== undefined)    payload.boosted_until = updates.boostedUntil;
