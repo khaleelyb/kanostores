@@ -112,6 +112,11 @@ export const ShopListPage: React.FC<ShopListPageProps> = ({ category, products, 
                               {isActiveBoosted(seller) && <BoostedBadge />}
                             </div>
                           <p className="text-xs text-gray-400 truncate">@{seller.username}</p>
+                          {seller.bio && (
+  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">
+    {seller.bio}
+  </p>
+)}
                         </div>
                         <div className="text-gray-300 dark:text-gray-600 group-hover:text-orange-400 transition-colors flex-shrink-0">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
