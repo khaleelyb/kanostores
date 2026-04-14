@@ -189,3 +189,60 @@ export const uploadImage = async (file: File, bucket: 'products' | 'profiles'): 
         return supabase.storage.from(bucket).getPublicUrl(data.path).data.publicUrl;
     } catch (e) { console.error('uploadImage:', e); return null; }
 };
+// ── Add these functions to services/dbService.ts ──────────────────────────────
+// Paste them at the bottom of your existing dbService.ts file
+
+export interface Order {
+  id: string;
+  buyerId: string | null;
+  sellerId: string | null;
+  productId: string | null;
+  productTitle: string;
+  amount: number;
+  currency: string;
+  status: 'pending' | 'processing' | 'success' | 'failed' | 'shipped' | 'delivered';
+  korapayReference: string | null;
+  buyerEmail: string | null;
+  buyerName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const getOrders = async (): Promise<Order[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(o => ({
+      id: o.id,
+      buyerId: o.buyer_id ?? null,
+      sellerId: o.seller_id ?? null,
+      productId: o.product_id ?? null,
+      productTitle: o.product_title,
+      amount: o.amount,
+      currency: o.currency ?? 'NGN',
+      status: o.status,
+      korapayReference: o.korapay_reference ?? null,
+      buyerEmail: o.buyer_email ?? null,
+      buyerName: o.buyer_name ?? null,
+      createdAt: o.created_at,
+      updatedAt: o.updated_at,
+    }));
+  } catch (e) { console.error('getOrders:', e); return []; }
+};
+
+export const updateOrderStatus = async (
+  orderId: string,
+  status: Order['status']
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('orders')
+      .update({ status })
+      .eq('id', orderId);
+    if (error) throw error;
+    return true;
+  } catch (e) { console.error('updateOrderStatus:', e); return false; }
+};
