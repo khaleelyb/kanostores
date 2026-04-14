@@ -22,6 +22,7 @@ import { generateAvatar } from './utils/avatar';
 import { ChatView } from './components/ChatView';
 import { MessageModal } from './components/MessageModal';
 import * as db from './services/dbService';
+import type { Order } from './services/dbService'; // ADDED: Order type import
 import { isSupabaseConfigured } from './services/supabase_client';
 
 // ── Admin usernames – add yours here ──────────────────────────────────────────
@@ -31,6 +32,7 @@ const ADMIN_USERNAMES = ['admin', 'superadmin'];
 const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]); // ADDED: orders state
   const [currentUser, setCurrentUser] = useState<User | null>(db.getCurrentUser);
   const [savedProductIds, setSavedProductIds] = useState<Set<string>>(new Set());
   const [threads, setThreads] = useState<MessageThread[]>([]);
@@ -58,12 +60,14 @@ const App: React.FC = () => {
     const load = async () => {
       setIsLoading(true);
       try {
-        const [productsData, usersData, threadsData] = await Promise.all([
-          db.getProducts(), db.getUsers(), db.getThreads()
+        // MODIFIED: Added ordersData to Promise.all
+        const [productsData, usersData, threadsData, ordersData] = await Promise.all([
+          db.getProducts(), db.getUsers(), db.getThreads(), db.getOrders()
         ]);
         setProducts(productsData);
         setUsers(usersData);
         setThreads(threadsData);
+        setOrders(ordersData); // ADDED: set orders
         if (currentUser) {
           const savedIds = await db.getSavedProductIds(currentUser.id);
           setSavedProductIds(savedIds);
@@ -217,6 +221,17 @@ const App: React.FC = () => {
     }
   };
 
+  // ADDED: Order status update handler
+  const handleUpdateOrderStatus = async (orderId: string, status: Order['status']) => {
+    const ok = await db.updateOrderStatus(orderId, status);
+    if (ok) {
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status, updatedAt: new Date().toISOString() } : o));
+      showToast(`Order marked as ${status}.`);
+    } else {
+      showToast('Error updating order status.');
+    }
+  };
+
   // --- SAVE / TOGGLE ---
   const handleToggleSave = async (productId: string) => {
     if (!currentUser) { setAuthModal({ isOpen: true, view: 'login' }); showToast('Log in to save items.'); return; }
@@ -363,7 +378,17 @@ const App: React.FC = () => {
     switch (activePage) {
       case 'admin':
         return currentUser?.isAdmin
-          ? <AdminDashboard products={products} users={users} currentUser={currentUser} onDeleteProduct={handleAdminDeleteProduct} onDeleteUser={handleAdminDeleteUser} onUpdateUser={handleAdminUpdateUser} onBack={handleBack} />
+          ? <AdminDashboard 
+              products={products} 
+              users={users} 
+              orders={orders}  // ADDED: orders prop
+              currentUser={currentUser} 
+              onDeleteProduct={handleAdminDeleteProduct} 
+              onDeleteUser={handleAdminDeleteUser} 
+              onUpdateUser={handleAdminUpdateUser} 
+              onUpdateOrderStatus={handleUpdateOrderStatus}  // ADDED: order status handler
+              onBack={handleBack} 
+            />
           : <AuthPrompt page="home" onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })} />;
 
       case 'saved':
