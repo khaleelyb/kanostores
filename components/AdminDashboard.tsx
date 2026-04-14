@@ -18,6 +18,8 @@ export interface Order {
   korapayReference: string | null;
   buyerEmail: string | null;
   buyerName: string | null;
+  buyerPhone: string | null;    // NEW
+  buyerAddress: string | null;  // NEW
   createdAt: string;
   updatedAt: string;
 }
