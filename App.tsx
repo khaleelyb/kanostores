@@ -164,7 +164,7 @@ const App: React.FC = () => {
       setCurrentUser(u); setUsers(users.map(x => x.id === currentUser.id ? u : x));
       showToast('Profile updated!');
     } else showToast('Error updating profile.');
-};
+  };
 
   // --- PRODUCTS ---
   const handleAddProduct = async (data: Omit<Product, 'id' | 'sellerId' | 'location' | 'date'>) => {
@@ -335,7 +335,21 @@ const App: React.FC = () => {
     // Product detail
     if (selectedProduct) {
       const seller = users.find(u => u.id === selectedProduct.sellerId);
-      return <ProductDetailPage product={selectedProduct} seller={seller ?? null} onClose={handleBack} onMessageSeller={handleMessageSeller} isSaved={savedProductIds.has(selectedProduct.id)} onToggleSave={() => handleToggleSave(selectedProduct.id)} />;
+      return (
+        <ProductDetailPage
+          product={selectedProduct}
+          seller={seller ?? null}
+          currentUser={currentUser}
+          onClose={handleBack}
+          onMessageSeller={handleMessageSeller}
+          onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })}
+          isSaved={savedProductIds.has(selectedProduct.id)}
+          onToggleSave={() => handleToggleSave(selectedProduct.id)}
+          onPaymentSuccess={(reference) => {
+            showToast('🎉 Payment successful! Order placed.');
+          }}
+        />
+      );
     }
 
     // Chat
