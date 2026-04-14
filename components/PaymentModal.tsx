@@ -4,11 +4,8 @@ import { Product, User } from '../types';
 import { initiatePayment, verifyPayment } from '../services/paymentService';
 import { Icon } from './Icon';
 
-// KoraPay public key — safe to expose on frontend (test key shown here)
-// Replace with your real test/live public key from your KoraPay dashboard
 const KORAPAY_PUBLIC_KEY = import.meta.env.VITE_KORAPAY_PUBLIC_KEY ?? 'pk_test_xxxxxxxxxxxx';
 
-// Declare KoraPay on window so TypeScript doesn't complain
 declare global {
   interface Window {
     Korapay?: {
@@ -25,7 +22,7 @@ interface PaymentModalProps {
   onPaymentSuccess: (reference: string) => void;
 }
 
-type Step = 'email' | 'processing' | 'success' | 'failed';
+type Step = 'form' | 'processing' | 'success' | 'failed';
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
@@ -34,8 +31,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   currentUser,
   onPaymentSuccess,
 }) => {
-  const [step, setStep] = useState<Step>('email');
+  const [step, setStep] = useState<Step>('form');
+  const [name, setName] = useState(currentUser.name ?? '');
+  const [phone, setPhone] = useState(currentUser.phone ?? '');
   const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [successRef, setSuccessRef] = useState('');
   const scriptLoaded = useRef(false);
@@ -48,45 +48,52 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     script.async = true;
     script.onload = () => { scriptLoaded.current = true; };
     document.body.appendChild(script);
-    return () => { /* leave script in DOM — safe to reuse */ };
   }, []);
 
   useEffect(() => {
     if (!isOpen) {
-      // Reset state when modal closes
-      setTimeout(() => { setStep('email'); setErrorMsg(''); setEmail(''); }, 300);
+      setTimeout(() => {
+        setStep('form');
+        setErrorMsg('');
+        setEmail('');
+        setAddress('');
+        setName(currentUser.name ?? '');
+        setPhone(currentUser.phone ?? '');
+      }, 300);
     }
-  }, [isOpen]);
+  }, [isOpen, currentUser]);
 
   if (!isOpen) return null;
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !email.includes('@')) {
-      setErrorMsg('Please enter a valid email address.');
-      return;
-    }
+
+    if (!name.trim()) { setErrorMsg('Please enter your full name.'); return; }
+    if (!phone.trim() || phone.trim().length < 7) { setErrorMsg('Please enter a valid phone number.'); return; }
+    if (!email.trim() || !email.includes('@')) { setErrorMsg('Please enter a valid email address.'); return; }
+    if (!address.trim()) { setErrorMsg('Please enter your delivery address.'); return; }
 
     setStep('processing');
     setErrorMsg('');
 
-    // Step 1: Create a pending order via Edge Function
     const result = await initiatePayment({
       productId: product.id,
       productTitle: product.title,
       amount: product.price,
       buyerId: currentUser.id,
-      buyerName: currentUser.name,
-      buyerEmail: email,
+      buyerName: name.trim(),
+      buyerEmail: email.trim(),
+      buyerPhone: phone.trim(),
+      buyerAddress: address.trim(),
     });
 
     if (!result) {
       setErrorMsg('Could not initialize payment. Please try again.');
-      setStep('email');
+      setStep('form');
       return;
     }
 
-    // Step 2: Wait for KoraPay script to be available
+    // Wait for KoraPay script
     let attempts = 0;
     while (!window.Korapay && attempts < 20) {
       await new Promise(r => setTimeout(r, 150));
@@ -95,13 +102,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
     if (!window.Korapay) {
       setErrorMsg('Payment script failed to load. Please refresh and try again.');
-      setStep('email');
+      setStep('form');
       return;
     }
 
-    setStep('processing');
-
-    // Step 3: Open KoraPay Checkout Standard
     window.Korapay.initialize({
       key: KORAPAY_PUBLIC_KEY,
       reference: result.reference,
@@ -109,12 +113,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       currency: result.currency,
       customer: result.customer,
       narration: `Payment for "${result.productTitle}" on Kano Market`,
-      onClose: () => {
-        // User dismissed the modal — go back to email step
-        setStep('email');
-      },
+      onClose: () => { setStep('form'); },
       onSuccess: async (data: { reference: string }) => {
-        // Step 4: Verify on server
         const verification = await verifyPayment(data.reference);
         if (verification?.status === 'success') {
           setSuccessRef(data.reference);
@@ -124,9 +124,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           setStep('failed');
         }
       },
-      onFailed: () => {
-        setStep('failed');
-      },
+      onFailed: () => { setStep('failed'); },
     });
   };
 
@@ -164,15 +162,48 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5">
+        <div className="px-6 py-5 max-h-[60vh] overflow-y-auto">
 
-          {/* ── Email step ── */}
-          {step === 'email' && (
+          {/* ── Checkout form ── */}
+          {step === 'form' && (
             <form onSubmit={handlePay} className="space-y-4">
+
+              {/* Full Name */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                  Your Email
-                  <span className="ml-1.5 text-xs font-normal text-gray-400">(for payment receipt)</span>
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="Aminu Musa"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              {/* Phone Number */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  placeholder="+234 800 000 0000"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all"
+                  required
+                />
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  Email
+                  <span className="ml-1.5 text-xs font-normal text-gray-400">(for receipt)</span>
                 </label>
                 <input
                   type="email"
@@ -181,7 +212,21 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   placeholder="you@example.com"
                   className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all"
                   required
-                  autoFocus
+                />
+              </div>
+
+              {/* Delivery Address */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  Delivery Address
+                </label>
+                <textarea
+                  value={address}
+                  onChange={e => setAddress(e.target.value)}
+                  placeholder="House number, street, area, city…"
+                  rows={3}
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all resize-none"
+                  required
                 />
               </div>
 
@@ -204,7 +249,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             </form>
           )}
 
-          {/* ── Processing step ── */}
+          {/* ── Processing ── */}
           {step === 'processing' && (
             <div className="flex flex-col items-center py-8 gap-4">
               <div className="w-12 h-12 rounded-2xl bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
@@ -217,7 +262,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
           )}
 
-          {/* ── Success step ── */}
+          {/* ── Success ── */}
           {step === 'success' && (
             <div className="flex flex-col items-center py-8 gap-4">
               <div className="w-16 h-16 rounded-2xl bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
@@ -227,7 +272,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </div>
               <div className="text-center">
                 <p className="font-bold text-gray-900 dark:text-white text-lg">Payment Successful!</p>
-                <p className="text-sm text-gray-400 mt-1">Your order has been placed.</p>
+                <p className="text-sm text-gray-400 mt-1">Your order has been placed. The seller will contact you shortly.</p>
                 {successRef && (
                   <p className="text-xs text-gray-300 dark:text-gray-600 mt-2 font-mono break-all">{successRef}</p>
                 )}
@@ -241,7 +286,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
           )}
 
-          {/* ── Failed step ── */}
+          {/* ── Failed ── */}
           {step === 'failed' && (
             <div className="flex flex-col items-center py-8 gap-4">
               <div className="w-16 h-16 rounded-2xl bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
@@ -261,7 +306,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   Cancel
                 </button>
                 <button
-                  onClick={() => setStep('email')}
+                  onClick={() => setStep('form')}
                   className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition-colors"
                 >
                   Try Again
