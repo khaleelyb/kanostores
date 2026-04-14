@@ -8,6 +8,8 @@ export interface InitiatePaymentParams {
   buyerId: string;
   buyerName: string;
   buyerEmail: string;
+  buyerPhone: string;    // NEW
+  buyerAddress: string;  // NEW
 }
 
 export interface PaymentInitResult {
