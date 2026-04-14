@@ -523,40 +523,57 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
 
                         {/* Expanded details */}
-                        {isExpanded && (
-                          <div className="mt-4 ml-16 bg-gray-50 dark:bg-gray-800/60 rounded-xl p-4 space-y-2 text-xs">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              <div>
-                                <p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Order ID</p>
-                                <p className="font-mono text-gray-600 dark:text-gray-300 break-all">{o.id}</p>
-                              </div>
-                              {o.korapayReference && (
-                                <div>
-                                  <p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Payment Reference</p>
-                                  <p className="font-mono text-gray-600 dark:text-gray-300 break-all">{o.korapayReference}</p>
-                                </div>
-                              )}
-                              {seller && (
-                                <div>
-                                  <p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Seller</p>
-                                  <div className="flex items-center gap-2">
-                                    <img src={seller.profilePicture} alt={seller.name} className="w-5 h-5 rounded-full object-cover" />
-                                    <p className="text-gray-600 dark:text-gray-300">{seller.name} (@{seller.username})</p>
-                                    {seller.phone && (
-                                      <a href={`tel:${seller.phone}`} className="text-orange-500 hover:text-orange-600">{seller.phone}</a>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                              <div>
-                                <p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Amount</p>
-                                <p className="text-gray-600 dark:text-gray-300 font-bold">₦{o.amount.toLocaleString()} {o.currency}</p>
-                              </div>
-                              <div>
-                                <p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Last Updated</p>
-                                <p className="text-gray-600 dark:text-gray-300">{formatDate(o.updatedAt)}</p>
-                              </div>
-                            </div>
+{isExpanded && (
+  <div className="mt-4 ml-16 bg-gray-50 dark:bg-gray-800/60 rounded-xl p-4 space-y-2 text-xs">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <div>
+        <p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Order ID</p>
+        <p className="font-mono text-gray-600 dark:text-gray-300 break-all">{o.id}</p>
+      </div>
+      
+      {/* Buyer Phone Field */}
+      {o.buyerPhone && (
+        <div>
+          <p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Buyer Phone</p>
+          <a href={`tel:${o.buyerPhone}`} className="text-orange-500 hover:text-orange-600 font-medium">{o.buyerPhone}</a>
+        </div>
+      )}
+      
+      {/* Delivery Address Field */}
+      {o.buyerAddress && (
+        <div className="sm:col-span-2">
+          <p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Delivery Address</p>
+          <p className="text-gray-600 dark:text-gray-300">{o.buyerAddress}</p>
+        </div>
+      )}
+      
+      {o.korapayReference && (
+        <div>
+          <p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Payment Reference</p>
+          <p className="font-mono text-gray-600 dark:text-gray-300 break-all">{o.korapayReference}</p>
+        </div>
+      )}
+      {seller && (
+        <div>
+          <p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Seller</p>
+          <div className="flex items-center gap-2">
+            <img src={seller.profilePicture} alt={seller.name} className="w-5 h-5 rounded-full object-cover" />
+            <p className="text-gray-600 dark:text-gray-300">{seller.name} (@{seller.username})</p>
+            {seller.phone && (
+              <a href={`tel:${seller.phone}`} className="text-orange-500 hover:text-orange-600">{seller.phone}</a>
+            )}
+          </div>
+        </div>
+      )}
+      <div>
+        <p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Amount</p>
+        <p className="text-gray-600 dark:text-gray-300 font-bold">₦{o.amount.toLocaleString()} {o.currency}</p>
+      </div>
+      <div>
+        <p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Last Updated</p>
+        <p className="text-gray-600 dark:text-gray-300">{formatDate(o.updatedAt)}</p>
+      </div>
+    </div>
 
                             {/* All status progression buttons */}
                             <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
