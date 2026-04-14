@@ -189,9 +189,8 @@ export const uploadImage = async (file: File, bucket: 'products' | 'profiles'): 
         return supabase.storage.from(bucket).getPublicUrl(data.path).data.publicUrl;
     } catch (e) { console.error('uploadImage:', e); return null; }
 };
-// ── Add these functions to services/dbService.ts ──────────────────────────────
-// Paste them at the bottom of your existing dbService.ts file
 
+// ── Orders ─────────────────────────────────────────────────────────────────────
 export interface Order {
   id: string;
   buyerId: string | null;
@@ -204,6 +203,8 @@ export interface Order {
   korapayReference: string | null;
   buyerEmail: string | null;
   buyerName: string | null;
+  buyerPhone: string | null;    // NEW
+  buyerAddress: string | null;  // NEW
   createdAt: string;
   updatedAt: string;
 }
@@ -227,6 +228,8 @@ export const getOrders = async (): Promise<Order[]> => {
       korapayReference: o.korapay_reference ?? null,
       buyerEmail: o.buyer_email ?? null,
       buyerName: o.buyer_name ?? null,
+      buyerPhone: o.buyer_phone ?? null,      // NEW
+      buyerAddress: o.buyer_address ?? null,  // NEW
       createdAt: o.created_at,
       updatedAt: o.updated_at,
     }));
