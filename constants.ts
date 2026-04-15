@@ -6,6 +6,7 @@ export const CATEGORIES = [
   'Men clothes',
   'Men shoes',
   'Women shoes',
+  'Watches and jewelries',
   'Cars',
   'Herbals and supplements',
   'Houses',
