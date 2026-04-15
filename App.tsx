@@ -424,7 +424,17 @@ const App: React.FC = () => {
                   <span className="font-semibold text-gray-800 dark:text-gray-200">{filteredProducts.length} results</span> for "{searchQuery}"
                 </p>
               </div>
-              <ProductGrid products={filteredProducts} onMessageSeller={handleMessageSeller} savedProductIds={savedProductIds} onToggleSave={handleToggleSave} onSelectProduct={handleSelectProduct} />
+              <ProductGrid
+  products={[...products].sort((a, b) => {
+    const aB = isActiveBoosted(users.find(u => u.id === a.sellerId) as any) ? 1 : 0;
+    const bB = isActiveBoosted(users.find(u => u.id === b.sellerId) as any) ? 1 : 0;
+    return bB - aB;
+  })}
+  onMessageSeller={handleMessageSeller}
+  savedProductIds={savedProductIds}
+  onToggleSave={handleToggleSave}
+  onSelectProduct={handleSelectProduct}
+/>
             </div>
           );
         }
