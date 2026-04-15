@@ -28,7 +28,9 @@ import { isSupabaseConfigured } from './services/supabase_client';
 // ── Admin usernames – add yours here ──────────────────────────────────────────
 const ADMIN_USERNAMES = ['admin', 'superadmin'];
 // ──────────────────────────────────────────────────────────────────────────────
-
+// At the top of App.tsx, add this helper (outside the component):
+const isActiveBoosted = (user: User) =>
+  user.isBoosted && (!user.boostedUntil || new Date(user.boostedUntil) > new Date());
 const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [users, setUsers] = useState<User[]>([]);
