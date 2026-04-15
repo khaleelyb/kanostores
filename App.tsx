@@ -438,29 +438,113 @@ const App: React.FC = () => {
         }
 
         return (
-          <>
-            <CategoryFilter categories={CATEGORIES} selectedCategory={null} setSelectedCategory={handleSelectCategory} />
-            {/* Hero strip */}
-            <div className="bg-gradient-to-r from-orange-500 to-amber-400 text-white">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Find great deals in Kano</h2>
-                  <p className="text-orange-100 mt-1 text-sm">{products.length.toLocaleString()} active listings from local sellers</p>
+  <>
+    <CategoryFilter categories={CATEGORIES} selectedCategory={null} setSelectedCategory={handleSelectCategory} />
+
+    {/* Hero strip */}
+    <div className="bg-gradient-to-r from-orange-500 to-amber-400 text-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Find great deals in Kano</h2>
+          <p className="text-orange-100 mt-1 text-sm">{products.length.toLocaleString()} active listings from local sellers</p>
+        </div>
+        <button
+          onClick={handlePostAdClick}
+          className="flex-shrink-0 bg-white text-orange-600 font-bold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl hover:bg-orange-50 transition-all"
+        >
+          + Post Free Ad
+        </button>
+      </div>
+    </div>
+
+    {/* Featured Products */}
+    {(() => {
+      const boostedUserIds = new Set(users.filter(isActiveBoosted).map(u => u.id));
+      const featuredProducts = products.filter(p => boostedUserIds.has(p.sellerId));
+      if (featuredProducts.length === 0) return null;
+      return (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold px-2.5 py-1 rounded-full">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                <path fillRule="evenodd" d="M9 4.5a.75.75 0 0 1 .721.544l.813 2.846a3.75 3.75 0 0 0 2.576 2.576l2.846.813a.75.75 0 0 1 0 1.442l-2.846.813a3.75 3.75 0 0 0-2.576 2.576l-.813 2.846a.75.75 0 0 1-1.442 0l-.813-2.846a3.75 3.75 0 0 0-2.576-2.576l-2.846-.813a.75.75 0 0 1 0-1.442l2.846-.813A3.75 3.75 0 0 0 7.466 7.89l.813-2.846A.75.75 0 0 1 9 4.5Z" clipRule="evenodd" />
+              </svg>
+              Featured
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Featured Products</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+            {featuredProducts.slice(0, 8).map(product => {
+              const seller = users.find(u => u.id === product.sellerId);
+              const thumbnail = product.images?.[0] ?? '';
+              const isSaved = savedProductIds.has(product.id);
+              return (
+                <div key={product.id} className="relative group bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border-2 border-amber-300 dark:border-amber-700 hover:border-amber-400 hover:shadow-xl hover:shadow-amber-50 dark:hover:shadow-amber-900/10 transition-all duration-300 hover:-translate-y-0.5 flex flex-col">
+                  {/* Featured badge */}
+                  <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1 bg-amber-400 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                      <path fillRule="evenodd" d="M9 4.5a.75.75 0 0 1 .721.544l.813 2.846a3.75 3.75 0 0 0 2.576 2.576l2.846.813a.75.75 0 0 1 0 1.442l-2.846.813a3.75 3.75 0 0 0-2.576 2.576l-.813 2.846a.75.75 0 0 1-1.442 0l-.813-2.846a3.75 3.75 0 0 0-2.576-2.576l-2.846-.813a.75.75 0 0 1 0-1.442l2.846-.813A3.75 3.75 0 0 0 7.466 7.89l.813-2.846A.75.75 0 0 1 9 4.5Z" clipRule="evenodd" />
+                    </svg>
+                    TOP
+                  </div>
+                  {/* Image */}
+                  <button onClick={() => handleSelectProduct(product)} className="relative overflow-hidden bg-gray-100 dark:bg-gray-800 aspect-[4/3] block">
+                    {thumbnail ? (
+                      <img src={thumbnail} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-gray-600">
+                        <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
+                      </div>
+                    )}
+                    <button
+                      onClick={e => { e.stopPropagation(); handleToggleSave(product.id); }}
+                      className={`absolute top-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-md ${isSaved ? 'bg-orange-500 text-white' : 'bg-white/90 dark:bg-gray-900/90 text-gray-500 hover:text-orange-500 backdrop-blur-sm'}`}
+                    >
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" strokeWidth={2} fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+                      </svg>
+                    </button>
+                  </button>
+                  {/* Content */}
+                  <button onClick={() => handleSelectProduct(product)} className="flex-1 p-3.5 text-left">
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm leading-snug line-clamp-2 mb-1">{product.title}</h3>
+                    <span className="inline-block text-xs text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-2 py-0.5 rounded-full font-medium mb-2">{product.category}</span>
+                    <p className="text-xl font-bold text-gray-900 dark:text-white">₦{product.price.toLocaleString()}</p>
+                    {seller && (
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <img src={seller.profilePicture} alt={seller.name} className="w-4 h-4 rounded-full object-cover" />
+                        <span className="text-xs text-gray-400 truncate">{seller.name}</span>
+                        {seller.isVerified && (
+                          <svg className="w-3 h-3 text-blue-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                            <path fillRule="evenodd" d="M8.603 3.799A4.49 4.49 0 0 1 12 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 0 1 3.498 1.307 4.491 4.491 0 0 1 1.307 3.497A4.49 4.49 0 0 1 21.75 12a4.49 4.49 0 0 1-1.549 3.397 4.491 4.491 0 0 1-1.307 3.497 4.491 4.491 0 0 1-3.497 1.307A4.49 4.49 0 0 1 12 21.75a4.49 4.49 0 0 1-3.397-1.549 4.491 4.491 0 0 1-3.497-1.307 4.491 4.491 0 0 1-1.307-3.497A4.49 4.49 0 0 1 2.25 12a4.49 4.49 0 0 1 1.549-3.397 4.491 4.491 0 0 1 1.307-3.497 4.491 4.491 0 0 1 3.497-1.307Zm7.007 6.387a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                    )}
+                  </button>
+                  <div className="px-3.5 pb-3.5">
+                    <button
+                      onClick={e => { e.stopPropagation(); handleMessageSeller(product); }}
+                      className="w-full py-2 text-sm font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/40 rounded-xl transition-colors"
+                    >
+                      Message Seller
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={handlePostAdClick}
-                  className="flex-shrink-0 bg-white text-orange-600 font-bold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl hover:bg-orange-50 transition-all"
-                >
-                  + Post Free Ad
-                </button>
-              </div>
-            </div>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Latest Listings</h3>
-            </div>
-            <ProductGrid products={products} onMessageSeller={handleMessageSeller} savedProductIds={savedProductIds} onToggleSave={handleToggleSave} onSelectProduct={handleSelectProduct} />
-          </>
-        );
+              );
+            })}
+          </div>
+          <div className="border-t border-gray-100 dark:border-gray-800 mb-6" />
+        </div>
+      );
+    })()}
+
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
+      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">All Listings</h3>
+    </div>
+    <ProductGrid products={products} onMessageSeller={handleMessageSeller} savedProductIds={savedProductIds} onToggleSave={handleToggleSave} onSelectProduct={handleSelectProduct} />
+  </>
+);
     }
   };
 
