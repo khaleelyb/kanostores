@@ -85,7 +85,9 @@ export const getProducts = async (): Promise<Product[]> => {
         return (data || []).map(p => ({
             id: p.id, title: p.title, price: p.price, category: p.category,
             images: parseImages(p.image), location: p.location, date: p.date,
-            description: p.description, sellerId: p.seller_id,
+            description: description: p.description, sellerId: p.seller_id,
+expiresAt: p.expires_at ?? null,
+isExpired: p.is_expired ?? false,
         }));
     } catch (e) { console.error('getProducts:', e); return []; }
 };
