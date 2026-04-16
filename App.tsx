@@ -400,9 +400,22 @@ const App: React.FC = () => {
       const otherId = activeThread.participants.find(p => p !== currentUser?.id);
       const participant = users.find(u => u.id === otherId);
       if (!currentUser || !participant) return null;
-      return <ChatView thread={activeThread} currentUser={currentUser} participant={participant} onClose={handleBack} onSendMessage={text => handleSendMessageInChat(text, activeThread.id)} />;
-    }
-
+      return <ChatView
+  thread={activeThread}
+  currentUser={currentUser}
+  participant={participant}
+  onClose={handleBack}
+  onSendMessage={text => handleSendMessageInChat(text, activeThread.id)}
+  onNewMessage={(msg) => {
+    setThreads(prev =>
+      prev.map(t =>
+        t.id === activeThread.id
+          ? { ...t, messages: [...t.messages, msg], lastMessageTimestamp: msg.timestamp }
+          : t
+      )
+    );
+  }}
+/>
     switch (activePage) {
       case 'admin':
         return currentUser?.isAdmin
