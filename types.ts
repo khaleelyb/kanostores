@@ -8,8 +8,6 @@ export interface Product {
   date: string;
   description: string;
   sellerId: string;
-  expiresAt?: string;   // ← ADD
-  isExpired?: boolean;  // ← ADD
 }
 
 export interface User {
