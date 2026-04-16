@@ -1,7 +1,7 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageThread, User } from '../types';
 import { Icon } from './Icon';
+import { supabase } from '../services/supabase_client';
 
 interface ChatViewProps {
   thread: MessageThread;
@@ -9,6 +9,7 @@ interface ChatViewProps {
   participant: User;
   onClose: () => void;
   onSendMessage: (text: string) => void;
+  onNewMessage: (message: any) => void; // Added this prop
 }
 
 const ChatBubble: React.FC<{ message: string; isCurrentUser: boolean; }> = ({ message, isCurrentUser }) => {
@@ -22,7 +23,14 @@ const ChatBubble: React.FC<{ message: string; isCurrentUser: boolean; }> = ({ me
   );
 };
 
-export const ChatView: React.FC<ChatViewProps> = ({ thread, currentUser, participant, onClose, onSendMessage }) => {
+export const ChatView: React.FC<ChatViewProps> = ({ 
+  thread, 
+  currentUser, 
+  participant, 
+  onClose, 
+  onSendMessage,
+  onNewMessage // Added this prop
+}) => {
   const [message, setMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -33,6 +41,39 @@ export const ChatView: React.FC<ChatViewProps> = ({ thread, currentUser, partici
   useEffect(() => {
     scrollToBottom();
   }, [thread.messages]);
+  
+  // Real-time subscription for new messages
+  useEffect(() => {
+    const channel = supabase
+      .channel(`thread-${thread.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `thread_id=eq.${thread.id}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as any;
+          // Avoid duplicates — only add if it's from the other person
+          if (newMsg.sender_id !== currentUser.id) {
+            const msg = {
+              id: newMsg.id,
+              senderId: newMsg.sender_id,
+              text: newMsg.text,
+              timestamp: newMsg.timestamp,
+            };
+            onNewMessage(msg);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [thread.id, currentUser.id, onNewMessage]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
