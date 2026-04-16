@@ -111,7 +111,7 @@ export const ShopListPage: React.FC<ShopListPageProps> = ({ category, products, 
                               {seller.isVerified && <VerifiedBadge />}
                               {isActiveBoosted(seller) && <BoostedBadge />}
                             </div>
-                          <p className="text-xs text-gray-400 truncate">@{seller.username}</p>
+                         
                           {seller.bio && (
   <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">
     {seller.bio}
