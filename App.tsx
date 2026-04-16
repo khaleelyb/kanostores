@@ -59,30 +59,37 @@ const App: React.FC = () => {
 
   // --- INITIAL DATA LOAD ---
   useEffect(() => {
-    const load = async () => {
-      setIsLoading(true);
-      try {
-        // MODIFIED: Added ordersData to Promise.all
-        const [productsData, usersData, threadsData, ordersData] = await Promise.all([
-          db.getProducts(), db.getUsers(), db.getThreads(), db.getOrders()
-        ]);
-        setProducts(productsData);
-        setUsers(usersData);
-        setThreads(threadsData);
-        setOrders(ordersData); // ADDED: set orders
-        if (currentUser) {
-          const savedIds = await db.getSavedProductIds(currentUser.id);
-          setSavedProductIds(savedIds);
+  const load = async () => {
+    setIsLoading(true);
+    try {
+      const [productsData, usersData, threadsData, ordersData] = await Promise.all([
+        db.getProducts(), db.getUsers(), db.getThreads(), db.getOrders()
+      ]);
+      setProducts(productsData);
+      setUsers(usersData);
+      setThreads(threadsData);
+      setOrders(ordersData);
+      if (currentUser) {
+        const savedIds = await db.getSavedProductIds(currentUser.id);
+        setSavedProductIds(savedIds);
+        // ✅ Sync currentUser with fresh DB data (picks up isApprovedSeller etc.)
+        const freshUser = usersData.find(u => u.id === currentUser.id);
+        if (freshUser) {
+          setCurrentUser({ 
+            ...freshUser, 
+            isAdmin: ADMIN_USERNAMES.includes(freshUser.username) 
+          });
         }
-      } catch (err) {
-        console.error(err);
-        showToast('Error loading data. Please refresh.');
-      } finally {
-        setIsLoading(false);
       }
-    };
-    load();
-  }, []);
+    } catch (err) {
+      console.error(err);
+      showToast('Error loading data. Please refresh.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  load();
+}, []);
 
   // --- HISTORY ---
   useEffect(() => {
