@@ -52,7 +52,7 @@ export const ShopProductsPage: React.FC<ShopProductsPageProps> = ({
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
                   <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{seller.name}</h1>
-                  <p className="text-sm text-gray-400 dark:text-gray-500">@{seller.username}</p>
+                 
  {seller.bio && (
   <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">
     {seller.bio}
