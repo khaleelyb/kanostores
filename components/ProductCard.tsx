@@ -15,7 +15,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onMessageSell
   return (
     <div className="group relative bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 hover:border-orange-200 dark:hover:border-orange-800/50 hover:shadow-xl hover:shadow-orange-50 dark:hover:shadow-orange-900/10 transition-all duration-300 hover:-translate-y-0.5 flex flex-col">
       {/* Image */}
-      <button onClick={() => onSelectProduct(product)} className="relative overflow-hidden bg-gray-100 dark:bg-gray-800 aspect-[4/3] block">
+      <button onClick={() => onSelectProduct(product)} className="relative overflow-hidden bg-gray-100 dark:bg-gray-800 h-[400px] block">
         {thumbnail ? (
           <img
             src={thumbnail}
