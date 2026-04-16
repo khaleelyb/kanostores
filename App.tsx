@@ -249,9 +249,13 @@ const App: React.FC = () => {
 
   // --- NAVIGATION ---
   const handlePostAdClick = () => {
-    if (!currentUser) { setAuthModal({ isOpen: true, view: 'login' }); return; }
-    setProductToEdit(null); setIsAddProductModalOpen(true);
-  };
+  if (!currentUser) { setAuthModal({ isOpen: true, view: 'login' }); return; }
+  if (!currentUser.isApprovedSeller && !currentUser.isAdmin) {
+    showToast('Seller access required. Contact admin to get approved.');
+    return;
+  }
+  setProductToEdit(null); setIsAddProductModalOpen(true);
+};
 
   const handleSelectCategory = (category: string) => {
     scrollPosition.current = window.scrollY;
