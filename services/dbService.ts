@@ -76,7 +76,11 @@ const parseImages = (raw: string): string[] => {
 
 export const getProducts = async (): Promise<Product[]> => {
     try {
-        const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+        const { data, error } = await supabase
+  .from('products')
+  .select('*')
+  .eq('is_expired', false)
+  .order('created_at', { ascending: false });
         if (error) throw error;
         return (data || []).map(p => ({
             id: p.id, title: p.title, price: p.price, category: p.category,
