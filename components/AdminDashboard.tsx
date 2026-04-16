@@ -714,8 +714,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   const showBoostPicker = boostPickerUserId === u.id;
 
                   return (
-                    <div key={u.id} className="px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                      <div className="flex items-center gap-4">
+                   <div key={u.id} className="px-3 sm:px-5 py-3 sm:py-4 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+  <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                         <div className="relative flex-shrink-0">
                           <img src={u.profilePicture} alt={u.name} className="w-10 h-10 rounded-full object-cover" />
                           {boosted && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-400 rounded-full border-2 border-white dark:border-gray-900 flex items-center justify-center">
