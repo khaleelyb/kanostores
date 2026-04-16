@@ -29,6 +29,7 @@ const rowToUser = (u: any): User => ({
     isVerified: u.is_verified ?? false,
     isBoosted: u.is_boosted ?? false,
     boostedUntil: u.boosted_until ?? null,
+    isApprovedSeller: u.is_approved_seller ?? false,
 });
 
 // ── Users ─────────────────────────────────────────────────────────────────────
