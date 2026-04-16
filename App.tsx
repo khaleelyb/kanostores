@@ -344,6 +344,21 @@ const App: React.FC = () => {
     );
   }, [products, searchQuery]);
 
+  // Sellers whose name, username, or bio matches the search query
+  const filteredSellers = useMemo(() => {
+    if (!searchQuery) return [];
+    const q = searchQuery.toLowerCase();
+    // Only include sellers who have at least one product
+    const sellerIds = new Set(products.map(p => p.sellerId));
+    return users.filter(u =>
+      sellerIds.has(u.id) && (
+        u.name.toLowerCase().includes(q) ||
+        u.username.toLowerCase().includes(q) ||
+        (u.bio ?? '').toLowerCase().includes(q)
+      )
+    );
+  }, [searchQuery, users, products]);
+
   const savedProducts = useMemo(() => products.filter(p => savedProductIds.has(p.id)), [products, savedProductIds]);
   const userProducts = useMemo(() => currentUser ? products.filter(p => p.sellerId === currentUser.id) : [], [products, currentUser]);
   const activeThread = threads.find(t => t.id === activeThreadId);
@@ -432,20 +447,125 @@ const App: React.FC = () => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6">
               <div className="pt-6 pb-2">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">{filteredProducts.length} results</span> for "{searchQuery}"
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">
+                    {filteredProducts.length + filteredSellers.length} results
+                  </span>{' '}
+                  for "{searchQuery}"
                 </p>
               </div>
-              <ProductGrid
-  products={[...products].sort((a, b) => {
-    const aB = isActiveBoosted(users.find(u => u.id === a.sellerId) as any) ? 1 : 0;
-    const bB = isActiveBoosted(users.find(u => u.id === b.sellerId) as any) ? 1 : 0;
-    return bB - aB;
-  })}
-  onMessageSeller={handleMessageSeller}
-  savedProductIds={savedProductIds}
-  onToggleSave={handleToggleSave}
-  onSelectProduct={handleSelectProduct}
-/>
+
+              {/* Matching Shops */}
+              {filteredSellers.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z" />
+                    </svg>
+                    Shops
+                    <span className="text-xs font-normal text-gray-400">({filteredSellers.length})</span>
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {filteredSellers.map(seller => {
+                      const sellerProducts = products.filter(p => p.sellerId === seller.id);
+                      const thumbnail = sellerProducts[0]?.images?.[0] ?? '';
+                      const boosted = isActiveBoosted(seller);
+                      return (
+                        <button
+                          key={seller.id}
+                          onClick={() => {
+                            // Navigate to the seller's first category, or show all products
+                            const firstCategory = sellerProducts[0]?.category ?? null;
+                            if (firstCategory) {
+                              setSearchQuery('');
+                              setSelectedCategory(firstCategory);
+                              setSelectedShop(seller);
+                              window.history.pushState({ view: 'shop', sellerId: seller.id, category: firstCategory, page: 'home' }, '', `#shop=${seller.id}`);
+                            }
+                          }}
+                          className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-orange-200 dark:hover:border-orange-800/60 overflow-hidden hover:shadow-xl hover:shadow-orange-50 dark:hover:shadow-orange-900/10 transition-all duration-300 hover:-translate-y-0.5 text-left"
+                        >
+                          {/* Banner / thumbnail */}
+                          <div className="relative h-24 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-gray-800 dark:to-gray-900 overflow-hidden">
+                            {thumbnail
+                              ? <img src={thumbnail} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-70" />
+                              : <div className="flex items-center justify-center h-full text-3xl opacity-20">🏪</div>
+                            }
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                            <div className="absolute bottom-2 right-2">
+                              <span className="bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                {sellerProducts.length} listing{sellerProducts.length !== 1 ? 's' : ''}
+                              </span>
+                            </div>
+                            {boosted && (
+                              <div className="absolute top-2 left-2 flex items-center gap-1 bg-amber-400 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                  <path fillRule="evenodd" d="M9 4.5a.75.75 0 0 1 .721.544l.813 2.846a3.75 3.75 0 0 0 2.576 2.576l2.846.813a.75.75 0 0 1 0 1.442l-2.846.813a3.75 3.75 0 0 0-2.576 2.576l-.813 2.846a.75.75 0 0 1-1.442 0l-.813-2.846a3.75 3.75 0 0 0-2.576-2.576l-2.846-.813a.75.75 0 0 1 0-1.442l2.846-.813A3.75 3.75 0 0 0 7.466 7.89l.813-2.846A.75.75 0 0 1 9 4.5Z" clipRule="evenodd" />
+                                </svg>
+                                TOP
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Info */}
+                          <div className="p-3.5 flex items-center gap-3">
+                            <img src={seller.profilePicture} alt={seller.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-gray-900 shadow-sm flex-shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1 flex-wrap">
+                                <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{seller.name}</p>
+                                {seller.isVerified && (
+                                  <svg className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                                    <path fillRule="evenodd" d="M8.603 3.799A4.49 4.49 0 0 1 12 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 0 1 3.498 1.307 4.491 4.491 0 0 1 1.307 3.497A4.49 4.49 0 0 1 21.75 12a4.49 4.49 0 0 1-1.549 3.397 4.491 4.491 0 0 1-1.307 3.497 4.491 4.491 0 0 1-3.497 1.307A4.49 4.49 0 0 1 12 21.75a4.49 4.49 0 0 1-3.397-1.549 4.491 4.491 0 0 1-3.497-1.307 4.491 4.491 0 0 1-1.307-3.497A4.49 4.49 0 0 1 2.25 12a4.49 4.49 0 0 1 1.549-3.397 4.491 4.491 0 0 1 1.307-3.497 4.491 4.491 0 0 1 3.497-1.307Zm7.007 6.387a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clipRule="evenodd" />
+                                  </svg>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-400 truncate">@{seller.username}</p>
+                              {seller.bio && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{seller.bio}</p>
+                              )}
+                            </div>
+                            <svg className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-orange-400 transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                            </svg>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Matching Products */}
+              {filteredProducts.length > 0 && (
+                <>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z" />
+                    </svg>
+                    Products
+                    <span className="text-xs font-normal text-gray-400">({filteredProducts.length})</span>
+                  </h3>
+                  <ProductGrid
+                    products={[...filteredProducts].sort((a, b) => {
+                      const aB = isActiveBoosted(users.find(u => u.id === a.sellerId) as any) ? 1 : 0;
+                      const bB = isActiveBoosted(users.find(u => u.id === b.sellerId) as any) ? 1 : 0;
+                      return bB - aB;
+                    })}
+                    onMessageSeller={handleMessageSeller}
+                    savedProductIds={savedProductIds}
+                    onToggleSave={handleToggleSave}
+                    onSelectProduct={handleSelectProduct}
+                  />
+                </>
+              )}
+
+              {/* Nothing found */}
+              {filteredProducts.length === 0 && filteredSellers.length === 0 && (
+                <div className="text-center py-16 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 mt-4">
+                  <div className="text-4xl mb-3">🔍</div>
+                  <h3 className="font-bold text-gray-800 dark:text-gray-200">No results found</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Try a different search term.</p>
+                </div>
+              )}
             </div>
           );
         }
