@@ -417,7 +417,7 @@ const App: React.FC = () => {
 
       case 'profile':
         return currentUser
-          ? <ProfilePage currentUser={currentUser} onLogout={handleLogout} onUpdateProfilePicture={handleUpdateProfilePicture} setActivePage={handlePageChange} userProducts={userProducts} onMessageSeller={handleMessageSeller} savedProductIds={savedProductIds} onToggleSave={handleToggleSave} onSelectProduct={handleSelectProduct} onEditProduct={p => { setProductToEdit(p); setIsAddProductModalOpen(true); }} onDeleteProduct={handleDeleteProduct} theme={theme} setTheme={setTheme} />
+          ? <ProfilePage currentUser={currentUser} onLogout={handleLogout} onUpdateProfilePicture={handleUpdateProfilePicture} setActivePage={handlePageChange} userProducts={userProducts} onMessageSeller={handleMessageSeller} savedProductIds={savedProductIds} onToggleSave={handleToggleSave} onSelectProduct={handleSelectProduct} onEditProduct={p => { setProductToEdit(p); setIsAddProductModalOpen(true); }} onDeleteProduct={handleDeleteProduct} onRenewProduct={handleRenewProduct} theme={theme} setTheme={setTheme} />
           : <AuthPrompt page="profile" onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })} />;
 
       case 'edit-profile':
