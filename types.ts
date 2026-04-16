@@ -21,6 +21,7 @@ export interface User {
   isVerified?: boolean;
   isBoosted?: boolean;
   boostedUntil?: string | null;
+  isApprovedSeller?: boolean;
 }
 
 export type Theme = 'light' | 'dark' | 'system';
