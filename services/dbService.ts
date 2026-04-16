@@ -107,7 +107,8 @@ export const createProduct = async (product: Omit<Product, 'id'>): Promise<Produ
         if (error) throw error;
         return { id: data.id, title: data.title, price: data.price, category: data.category,
             images: parseImages(data.image), location: data.location, date: data.date,
-            description: data.description, sellerId: data.seller_id };
+            description: data.description, sellerId: data.seller_id expiresAt: data.expires_at ?? null,
+isExpired: data.is_expired ?? false, };
     } catch (e) { console.error('createProduct:', e); return null; }
 };
 
