@@ -77,15 +77,17 @@ const parseImages = (raw: string): string[] => {
 export const getProducts = async (): Promise<Product[]> => {
     try {
         const { data, error } = await supabase
-  .from('products')
-  .select('*')
-  .eq('is_expired', false)
-  .order('created_at', { ascending: false });
+            .from('products')
+            .select('*')
+            .eq('is_expired', false)
+            .order('created_at', { ascending: false });
         if (error) throw error;
         return (data || []).map(p => ({
             id: p.id, title: p.title, price: p.price, category: p.category,
             images: parseImages(p.image), location: p.location, date: p.date,
             description: p.description, sellerId: p.seller_id,
+            expiresAt: p.expires_at ?? null,
+            isExpired: p.is_expired ?? false,
         }));
     } catch (e) { console.error('getProducts:', e); return []; }
 };
@@ -94,14 +96,22 @@ export const createProduct = async (product: Omit<Product, 'id'>): Promise<Produ
     try {
         const { data, error } = await supabase
             .from('products')
-            .insert({ title: product.title, price: product.price, category: product.category,
+            .insert({
+                title: product.title, price: product.price, category: product.category,
                 image: JSON.stringify(product.images), location: product.location,
-                date: product.date, description: product.description, seller_id: product.sellerId })
+                date: product.date, description: product.description, seller_id: product.sellerId,
+                expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                is_expired: false,
+            })
             .select().single();
         if (error) throw error;
-        return { id: data.id, title: data.title, price: data.price, category: data.category,
+        return { 
+            id: data.id, title: data.title, price: data.price, category: data.category,
             images: parseImages(data.image), location: data.location, date: data.date,
-            description: data.description, sellerId: data.seller_id };
+            description: data.description, sellerId: data.seller_id,
+            expiresAt: data.expires_at ?? null,
+            isExpired: data.is_expired ?? false,
+        };
     } catch (e) { console.error('createProduct:', e); return null; }
 };
 
@@ -252,4 +262,18 @@ export const updateOrderStatus = async (
     if (error) throw error;
     return true;
   } catch (e) { console.error('updateOrderStatus:', e); return false; }
+};
+
+export const renewProduct = async (productId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('products')
+      .update({
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        is_expired: false,
+      })
+      .eq('id', productId);
+    if (error) throw error;
+    return true;
+  } catch (e) { console.error('renewProduct:', e); return false; }
 };
