@@ -63,6 +63,7 @@ export const updateUser = async (userId: string, updates: Partial<User>): Promis
         if (updates.isVerified !== undefined)      payload.is_verified = updates.isVerified;
         if (updates.isBoosted !== undefined)       payload.is_boosted = updates.isBoosted;
         if (updates.boostedUntil !== undefined)    payload.boosted_until = updates.boostedUntil;
+        if (updates.isApprovedSeller !== undefined) payload.is_approved_seller = updates.isApprovedSeller;
 
         const { error } = await supabase.from('users').update(payload).eq('id', userId);
         if (error) throw error;
