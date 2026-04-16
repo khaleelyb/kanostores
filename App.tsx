@@ -395,29 +395,62 @@ const App: React.FC = () => {
       );
     }
 
-    // Chat
-    if (activeThread) {
-      const otherId = activeThread.participants.find(p => p !== currentUser?.id);
-      const participant = users.find(u => u.id === otherId);
-      if (!currentUser || !participant) return null;
-      return <ChatView thread={activeThread} currentUser={currentUser} participant={participant} onClose={handleBack} onSendMessage={text => handleSendMessageInChat(text, activeThread.id)} />;
-    }
+   // Chat
+if (activeThread) {
+  const otherId = activeThread.participants.find(p => p !== currentUser?.id);
+  const participant = users.find(u => u.id === otherId);
 
-    switch (activePage) {
-      case 'admin':
-        return currentUser?.isAdmin
-          ? <AdminDashboard 
-              products={products} 
-              users={users} 
-              orders={orders}  // ADDED: orders prop
-              currentUser={currentUser} 
-              onDeleteProduct={handleAdminDeleteProduct} 
-              onDeleteUser={handleAdminDeleteUser} 
-              onUpdateUser={handleAdminUpdateUser} 
-              onUpdateOrderStatus={handleUpdateOrderStatus}  // ADDED: order status handler
-              onBack={handleBack} 
-            />
-          : <AuthPrompt page="home" onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })} />;
+  if (!currentUser || !participant) return null;
+
+  return (
+    <ChatView
+      thread={activeThread}
+      currentUser={currentUser}
+      participant={participant}
+      onClose={handleBack}
+      onSendMessage={text =>
+        handleSendMessageInChat(text, activeThread.id)
+      }
+      onNewMessage={(msg) => {
+        setThreads(prev =>
+          prev.map(t =>
+            t.id === activeThread.id
+              ? {
+                  ...t,
+                  messages: [...t.messages, msg],
+                  lastMessageTimestamp: msg.timestamp,
+                }
+              : t
+          )
+        );
+      }}
+    />
+  );
+}
+
+switch (activePage) {
+  case 'admin':
+    return currentUser?.isAdmin ? (
+      <AdminDashboard
+        products={products}
+        users={users}
+        orders={orders} // ADDED: orders prop
+        currentUser={currentUser}
+        onDeleteProduct={handleAdminDeleteProduct}
+        onDeleteUser={handleAdminDeleteUser}
+        onUpdateUser={handleAdminUpdateUser}
+        onUpdateOrderStatus={handleUpdateOrderStatus} // ADDED: order status handler
+        onBack={handleBack}
+      />
+    ) : (
+      <AuthPrompt
+        page="home"
+        onLoginClick={() =>
+          setAuthModal({ isOpen: true, view: 'login' })
+        }
+      />
+    );
+}
 
       case 'saved':
         return currentUser
