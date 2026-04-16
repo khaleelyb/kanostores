@@ -96,9 +96,13 @@ export const createProduct = async (product: Omit<Product, 'id'>): Promise<Produ
     try {
         const { data, error } = await supabase
             .from('products')
-            .insert({ title: product.title, price: product.price, category: product.category,
-                image: JSON.stringify(product.images), location: product.location,
-                date: product.date, description: product.description, seller_id: product.sellerId })
+            .insert({
+  title: product.title, price: product.price, category: product.category,
+  image: JSON.stringify(product.images), location: product.location,
+  date: product.date, description: product.description, seller_id: product.sellerId,
+  expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+  is_expired: false,
+})
             .select().single();
         if (error) throw error;
         return { id: data.id, title: data.title, price: data.price, category: data.category,
