@@ -186,7 +186,18 @@ const App: React.FC = () => {
     else showToast('Error updating ad.');
   };
 
-  const handleDeleteProduct = async (id: string) => {
+  const handleRenewProduct = async (id: string) => {
+  const ok = await db.renewProduct(id);
+  if (ok) {
+    const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    setProducts(prev =>
+      prev.map(p => p.id === id ? { ...p, expiresAt: newExpiry, isExpired: false } : p)
+    );
+    showToast('✅ Listing renewed for 7 days!');
+  } else {
+    showToast('Error renewing listing.');
+  }
+};
     if (window.confirm('Delete this listing?')) {
       const ok = await db.deleteProduct(id);
       if (ok) { setProducts(products.filter(p => p.id !== id)); showToast('Listing deleted.'); }
