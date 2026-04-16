@@ -85,54 +85,53 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-16">
 
         {/* ── IMAGE ── */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 mb-4">
-          <div
-            className="relative cursor-zoom-in bg-gray-100 dark:bg-gray-800 overflow-hidden"
-            style={{ aspectRatio: '16/9' }}
-            onClick={() => images.length > 0 && setIsLightboxOpen(true)}
-          >
-            {images.length > 0 ? (
-              <img
-                src={images[selectedImageIndex]}
-                alt={product.title}
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-gray-600">
-                <svg className="w-16 h-16" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
-                </svg>
-              </div>
-            )}
+<div className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 mb-4">
+  <div
+    className="relative cursor-zoom-in bg-gray-100 dark:bg-gray-800 overflow-hidden h-[400px]"
+    onClick={() => images.length > 0 && setIsLightboxOpen(true)}
+  >
+    {images.length > 0 ? (
+      <img
+        src={images[selectedImageIndex]}
+        alt={product.title}
+        className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+      />
+    ) : (
+      <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-gray-600">
+        <svg className="w-16 h-16" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+        </svg>
+      </div>
+    )}
 
-            {images.length > 0 && (
-              <div className="absolute bottom-3 right-3 bg-black/40 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 pointer-events-none">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
-                </svg>
-                Tap to expand
-              </div>
-            )}
-          </div>
+    {images.length > 0 && (
+      <div className="absolute bottom-3 right-3 bg-black/40 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 pointer-events-none">
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+        </svg>
+        Tap to expand
+      </div>
+    )}
+  </div>
 
-          {images.length > 1 && (
-            <div className="flex gap-3 p-4 overflow-x-auto bg-gray-50 dark:bg-gray-800/50">
-              {images.map((img, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setSelectedImageIndex(idx)}
-                  className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 transition-all duration-200 ${
-                    selectedImageIndex === idx
-                      ? 'border-orange-500 shadow-md shadow-orange-200 dark:shadow-orange-900/40 opacity-100'
-                      : 'border-transparent opacity-60 hover:opacity-90 hover:border-gray-300 dark:hover:border-gray-600'
-                  }`}
-                >
-                  <img src={img} alt={`View ${idx + 1}`} className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+  {images.length > 1 && (
+    <div className="flex gap-3 p-4 overflow-x-auto bg-gray-50 dark:bg-gray-800/50">
+      {images.map((img, idx) => (
+        <button
+          key={idx}
+          onClick={() => setSelectedImageIndex(idx)}
+          className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 transition-all duration-200 ${
+            selectedImageIndex === idx
+              ? 'border-orange-500 shadow-md shadow-orange-200 dark:shadow-orange-900/40 opacity-100'
+              : 'border-transparent opacity-60 hover:opacity-90 hover:border-gray-300 dark:hover:border-gray-600'
+          }`}
+        >
+          <img src={img} alt={`View ${idx + 1}`} className="w-full h-full object-cover" />
+        </button>
+      ))}
+    </div>
+  )}
+</div>
 
         {/* ── DETAILS ── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
