@@ -21,7 +21,6 @@ interface ProfilePageProps {
   onSelectProduct: (product: Product) => void;
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (productId: string) => void;
-  onRenewProduct: (productId: string) => void;  // ADD THIS LINE
   theme: Theme;
   setTheme: (theme: Theme) => void;
 }
@@ -50,7 +49,7 @@ const ThemeSelector: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }> = 
 export const ProfilePage: React.FC<ProfilePageProps> = ({
   currentUser, onLogout, onUpdateProfilePicture, setActivePage,
   userProducts, onMessageSeller, savedProductIds, onToggleSave,
-  onSelectProduct, onEditProduct, onDeleteProduct, onRenewProduct, theme, setTheme,  // ADD onRenewProduct here
+  onSelectProduct, onEditProduct, onDeleteProduct, theme, setTheme,
 }) => {
   const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -189,44 +188,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-5">My Listings</h2>
         {userProducts.length > 0 ? (
           <ProductGrid products={userProducts} onMessageSeller={onMessageSeller} savedProductIds={savedProductIds} onToggleSave={onToggleSave} onSelectProduct={onSelectProduct}>
-  {({ product }: { product: Product }) => {
-    const expires = product.expiresAt ? new Date(product.expiresAt) : null;
-    const daysLeft = expires ? Math.ceil((expires.getTime() - Date.now()) / 86400000) : null;
-    const isExpired = product.isExpired || (daysLeft !== null && daysLeft <= 0);
-    const isExpiringSoon = !isExpired && daysLeft !== null && daysLeft <= 2;
-
-    return (
-      <div className="px-3.5 pb-3 -mt-1 space-y-2">
-        {(isExpired || isExpiringSoon) && (
-          <div className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold ${
-            isExpired
-              ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
-              : 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400'
-          }`}>
-            <span>
-              {isExpired ? '❌ Expired — hidden from listings' : `⏳ Expires in ${daysLeft}d`}
-            </span>
-            <button
-              onClick={() => onRenewProduct(product.id)}
-              className="ml-2 bg-orange-500 hover:bg-orange-600 text-white px-2.5 py-1 rounded-lg transition-colors"
-            >
-              Renew
-            </button>
-          </div>
-        )}
-        {!isExpired && !isExpiringSoon && daysLeft !== null && (
-          <p className="text-xs text-gray-400 dark:text-gray-500 px-1">
-            ⏱ Expires in {daysLeft}d
-          </p>
-        )}
-        <div className="flex justify-end gap-3">
-          <button onClick={() => onEditProduct(product)} className="text-xs font-semibold text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-2.5 py-1 rounded-lg transition-colors">Edit</button>
-          <button onClick={() => onDeleteProduct(product.id)} className="text-xs font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 px-2.5 py-1 rounded-lg transition-colors">Delete</button>
-        </div>
-      </div>
-    );
-  }}
-</ProductGrid>
+            {({ product }: { product: Product }) => (
+              <div className="flex justify-end gap-3 px-3.5 pb-3 -mt-1">
+                <button onClick={() => onEditProduct(product)} className="text-xs font-semibold text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-2.5 py-1 rounded-lg transition-colors">Edit</button>
+                <button onClick={() => onDeleteProduct(product.id)} className="text-xs font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 px-2.5 py-1 rounded-lg transition-colors">Delete</button>
+              </div>
+            )}
+          </ProductGrid>
         ) : (
           <div className="text-center py-16 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
             <div className="text-4xl mb-3">📦</div>
