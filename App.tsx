@@ -834,19 +834,6 @@ case 'cart':
       );
     })()}
 
-    {(() => {
-  const boostedUserIds = new Set(users.filter(isActiveBoosted).map(u => u.id));
-  const featuredOnly = products.filter(p => boostedUserIds.has(p.sellerId));
-  if (featuredOnly.length === 0) return null;
-  return (
-    <>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Featured Listings</h3>
-      </div>
-      <ProductGrid products={featuredOnly} onMessageSeller={handleMessageSeller} savedProductIds={savedProductIds} onToggleSave={handleToggleSave} onSelectProduct={handleSelectProduct} />
-    </>
-  );
-})()}
   </>
 );
     }
