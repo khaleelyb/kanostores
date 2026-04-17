@@ -32,6 +32,7 @@ interface ProductDetailPageProps {
   onPaymentSuccess?: (reference: string) => void;
   onAddToCart: (product: Product) => void;
 cartItemCount: number; // how many of this product are already in cart
+  onSaveBuyerDetails?: (email: string, address: string, phone: string, name: string) => void;
 }
 
 export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
@@ -363,6 +364,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             setIsPaymentModalOpen(false);
             onPaymentSuccess?.(reference);
           }}
+          onSaveBuyerDetails={onSaveBuyerDetails} 
         />
       )}
     </div>
