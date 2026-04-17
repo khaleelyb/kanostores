@@ -30,6 +30,8 @@ const rowToUser = (u: any): User => ({
     isBoosted: u.is_boosted ?? false,
     boostedUntil: u.boosted_until ?? null,
     isApprovedSeller: u.is_approved_seller ?? false,
+    email: u.email ?? undefined,
+address: u.address ?? undefined,
 });
 
 // ── Users ─────────────────────────────────────────────────────────────────────
