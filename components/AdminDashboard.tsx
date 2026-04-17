@@ -440,8 +440,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <div key={o.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
   {/* Order row */}
   <div className="px-5 py-4">
-    <div className="flex items-start gap-4">
-      {/* Product thumbnail */}
+    
       <div className="flex items-start gap-4">
   {/* Product thumbnail */}
   <div className="w-16 h-16 rounded-xl bg-gray-100 dark:bg-gray-800 overflow-hidden flex-shrink-0">
