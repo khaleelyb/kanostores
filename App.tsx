@@ -272,7 +272,17 @@ useEffect(() => {
       showToast('Profile updated!');
     } else showToast('Error updating profile.');
   };
-
+const handleSaveBuyerDetails = async (email: string, address: string, phone: string, name: string) => {
+  if (!currentUser) return;
+  const updates = { email, address, phone, name };
+  const ok = await db.updateUser(currentUser.id, updates);
+  if (ok) {
+    const updated = { ...currentUser, email, address, phone, name };
+    setCurrentUser(updated);
+    setUsers(prev => prev.map(u => u.id === currentUser.id ? updated : u));
+    // localStorage auto-updates via the useEffect watching currentUser
+  }
+};
   // --- PRODUCTS ---
   const handleAddProduct = async (data: Omit<Product, 'id' | 'sellerId' | 'location' | 'date'>) => {
     if (!currentUser) { setAuthModal({ isOpen: true, view: 'login' }); showToast('Please log in to post.'); return; }
