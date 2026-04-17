@@ -20,6 +20,7 @@ interface PaymentModalProps {
   product: Product;
   currentUser: User;
   onPaymentSuccess: (reference: string) => void;
+onSaveBuyerDetails?: (email: string, address: string, phone: string, name: string) => void;
 }
 
 type Step = 'form' | 'processing' | 'success' | 'failed';
@@ -34,8 +35,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [step, setStep] = useState<Step>('form');
   const [name, setName] = useState(currentUser.name ?? '');
   const [phone, setPhone] = useState(currentUser.phone ?? '');
-  const [email, setEmail] = useState('');
-  const [address, setAddress] = useState('');
+  const [email, setEmail] = useState(currentUser.email ?? '');
+const [address, setAddress] = useState(currentUser.address ?? '');
   const [errorMsg, setErrorMsg] = useState('');
   const [successRef, setSuccessRef] = useState('');
   const scriptLoaded = useRef(false);
@@ -55,8 +56,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       setTimeout(() => {
         setStep('form');
         setErrorMsg('');
-        setEmail('');
-        setAddress('');
+        setEmail(currentUser.email ?? '');
+setAddress(currentUser.address ?? '');
         setName(currentUser.name ?? '');
         setPhone(currentUser.phone ?? '');
       }, 300);
@@ -115,15 +116,17 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       narration: `Payment for "${result.productTitle}" on Kano Market`,
       onClose: () => { setStep('form'); },
       onSuccess: async (data: { reference: string }) => {
-        const verification = await verifyPayment(data.reference);
-        if (verification?.status === 'success') {
-          setSuccessRef(data.reference);
-          setStep('success');
-          onPaymentSuccess(data.reference);
-        } else {
-          setStep('failed');
-        }
-      },
+  const verification = await verifyPayment(data.reference);
+  if (verification?.status === 'success') {
+    setSuccessRef(data.reference);
+    setStep('success');
+    onPaymentSuccess(data.reference);
+    // ← save details silently
+    onSaveBuyerDetails?.(email.trim(), address.trim(), phone.trim(), name.trim());
+  } else {
+    setStep('failed');
+  }
+},
       onFailed: () => { setStep('failed'); },
     });
   };
