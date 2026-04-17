@@ -44,6 +44,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   isSaved,
   onToggleSave,
   onPaymentSuccess,
+  onAddToCart,
+  cartItemCount,
 }) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
