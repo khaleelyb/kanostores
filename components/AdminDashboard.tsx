@@ -443,7 +443,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     
       <div className="flex items-start gap-4">
   {/* Product thumbnail */}
-  <div className="w-16 h-16 rounded-xl bg-gray-100 dark:bg-gray-800 overflow-hidden flex-shrink-0">
+  <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-xl bg-gray-100 dark:bg-gray-800 overflow-hidden flex-shrink-0">
     {product?.images?.[0]
       ? <img src={product.images[0]} alt="" className="w-full h-full object-cover" />
       : <div className="w-full h-full flex items-center justify-center text-gray-400">
