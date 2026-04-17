@@ -25,6 +25,8 @@ import * as db from './services/dbService';
 import type { Order } from './services/dbService'; // ADDED: Order type import
 import { isSupabaseConfigured } from './services/supabase_client';
 import { supabase } from './services/supabase_client';
+import { CartPage } from './components/CartPage';
+import { CartItem } from './types';
 
 // ── Admin usernames – add yours here ──────────────────────────────────────────
 const ADMIN_USERNAMES = ['admin', 'superadmin'];
