@@ -47,4 +47,4 @@ export interface MessageThread {
   lastMessageTimestamp: number;
 }
 
-export type Page = 'home' | 'saved' | 'messages' | 'profile' | 'edit-profile' | 'admin';
+export type Page = 'home' | 'saved' | 'messages' | 'profile' | 'edit-profile' | 'admin' | 'cart';
