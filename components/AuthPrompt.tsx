@@ -16,7 +16,11 @@ const pageInfo = {
         title: "Access Your Messages",
         message: "Log in to read and send messages to buyers and sellers on the platform."
     },
-    profile: {
+  cart: {
+  title: 'View Your Cart',
+  message: 'Log in to access your cart and complete your purchase.'
+},  
+  profile: {
         title: "View Your Profile",
         message: "Log in to manage your ads, edit your profile, and view your account details."
     },
