@@ -38,6 +38,7 @@ const App: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]); // ADDED: orders state
   const [currentUser, setCurrentUser] = useState<User | null>(db.getCurrentUser);
   const [savedProductIds, setSavedProductIds] = useState<Set<string>>(new Set());
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [threads, setThreads] = useState<MessageThread[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -379,6 +380,27 @@ useEffect(() => {
     setMessageModal({ isOpen: true, product });
   };
 
+  const handleAddToCart = (product: Product) => {
+  if (!currentUser) { setAuthModal({ isOpen: true, view: 'login' }); return; }
+  setCartItems(prev => {
+    const existing = prev.find(i => i.product.id === product.id);
+    if (existing) return prev.map(i => i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
+    return [...prev, { product, quantity: 1 }];
+  });
+  showToast('Added to cart!');
+};
+
+const handleUpdateCartQuantity = (productId: string, quantity: number) => {
+  if (quantity <= 0) { handleRemoveFromCart(productId); return; }
+  setCartItems(prev => prev.map(i => i.product.id === productId ? { ...i, quantity } : i));
+};
+
+const handleRemoveFromCart = (productId: string) => {
+  setCartItems(prev => prev.filter(i => i.product.id !== productId));
+  showToast('Removed from cart.');
+};
+
+const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
   const handleSendMessage = async (text: string) => {
     if (!currentUser || !messageModal.product) return;
     const { product } = messageModal;
