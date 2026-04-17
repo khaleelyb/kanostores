@@ -22,6 +22,8 @@ export interface User {
   isBoosted?: boolean;
   boostedUntil?: string | null;
   isApprovedSeller?: boolean;
+  email?: string;
+  address?: string;
 }
 
 export type Theme = 'light' | 'dark' | 'system';
