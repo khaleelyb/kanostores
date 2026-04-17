@@ -518,6 +518,7 @@ const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
           }}
           onAddToCart={handleAddToCart}
 cartItemCount={cartItems.find(i => i.product.id === selectedProduct.id)?.quantity ?? 0}
+          onSaveBuyerDetails={handleSaveBuyerDetails}
         />
       );
     }
