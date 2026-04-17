@@ -851,7 +851,7 @@ case 'cart':
       </main>
       {!isAdmin && <Footer />}
       {!isAdmin && (
-        <BottomNav onPostAdClick={handlePostAdClick} activePage={activePage} setActivePage={handlePageChange} />
+        <BottomNav onPostAdClick={handlePostAdClick} activePage={activePage} setActivePage={handlePageChange} cartCount={cartCount} />
       )}
       <AddProductModal
         isOpen={isAddProductModalOpen}
