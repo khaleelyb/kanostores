@@ -33,6 +33,11 @@ export interface Message {
   timestamp: number;
 }
 
+export interface CartItem {
+  product: Product;
+  quantity: number;
+}
+
 export interface MessageThread {
   id: string;
   productId: string;
