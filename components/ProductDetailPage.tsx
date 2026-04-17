@@ -30,6 +30,8 @@ interface ProductDetailPageProps {
   isSaved: boolean;
   onToggleSave: () => void;
   onPaymentSuccess?: (reference: string) => void;
+  onAddToCart: (product: Product) => void;
+cartItemCount: number; // how many of this product are already in cart
 }
 
 export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
