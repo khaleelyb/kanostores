@@ -66,6 +66,8 @@ export const updateUser = async (userId: string, updates: Partial<User>): Promis
         if (updates.isBoosted !== undefined)       payload.is_boosted = updates.isBoosted;
         if (updates.boostedUntil !== undefined)    payload.boosted_until = updates.boostedUntil;
         if (updates.isApprovedSeller !== undefined) payload.is_approved_seller = updates.isApprovedSeller;
+        if (updates.email !== undefined)   payload.email = updates.email || null;
+if (updates.address !== undefined) payload.address = updates.address || null;
 
         const { error } = await supabase.from('users').update(payload).eq('id', userId);
         if (error) throw error;
