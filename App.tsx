@@ -504,6 +504,8 @@ const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
           onPaymentSuccess={(reference) => {
             showToast('🎉 Payment successful! Order placed.');
           }}
+          onAddToCart={handleAddToCart}
+cartItemCount={cartItems.find(i => i.product.id === selectedProduct.id)?.quantity ?? 0}
         />
       );
     }
@@ -556,7 +558,18 @@ const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
         return currentUser
           ? <MessagesPage threads={threads} currentUser={currentUser} users={users} onSelectThread={handleThreadSelect} />
           : <AuthPrompt page="messages" onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })} />;
-
+case 'cart':
+  return currentUser
+    ? <CartPage
+        cartItems={cartItems}
+        onUpdateQuantity={handleUpdateCartQuantity}
+        onRemoveItem={handleRemoveFromCart}
+        onCheckout={(product) => { handleSelectProduct(product); /* payment modal opens there */ }}
+        onSelectProduct={handleSelectProduct}
+        currentUser={currentUser}
+        onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })}
+      />
+    : <AuthPrompt page="cart" onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })} />;
       case 'profile':
         return currentUser
           ? <ProfilePage currentUser={currentUser} onLogout={handleLogout} onUpdateProfilePicture={handleUpdateProfilePicture} setActivePage={handlePageChange} userProducts={userProducts} onMessageSeller={handleMessageSeller} savedProductIds={savedProductIds} onToggleSave={handleToggleSave} onSelectProduct={handleSelectProduct} onEditProduct={p => { setProductToEdit(p); setIsAddProductModalOpen(true); }} onDeleteProduct={handleDeleteProduct} theme={theme} setTheme={setTheme} />
