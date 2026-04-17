@@ -845,6 +845,7 @@ case 'cart':
           activePage={activePage}
           setActivePage={handlePageChange}
           currentUser={currentUser}
+          cartCount={cartCount}
           onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })}
         />
       )}
