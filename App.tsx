@@ -123,6 +123,97 @@ const App: React.FC = () => {
     if (!selectedProduct && scrollPosition.current > 0) window.scrollTo(0, scrollPosition.current);
   }, [selectedProduct]);
 
+  // Realtime: new products
+useEffect(() => {
+  const channel = supabase
+    .channel('products-realtime')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'products' },
+      (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const p = payload.new as any;
+          const newProduct: Product = {
+            id: p.id,
+            title: p.title,
+            price: p.price,
+            category: p.category,
+            images: (() => { try { const r = JSON.parse(p.image); return Array.isArray(r) ? r : [p.image]; } catch { return [p.image]; } })(),
+            location: p.location,
+            date: p.date,
+            description: p.description,
+            sellerId: p.seller_id,
+          };
+          setProducts(prev =>
+            prev.some(x => x.id === newProduct.id) ? prev : [newProduct, ...prev]
+          );
+        } else if (payload.eventType === 'UPDATE') {
+          const p = payload.new as any;
+          setProducts(prev =>
+            prev.map(x =>
+              x.id === p.id
+                ? { ...x, title: p.title, price: p.price, category: p.category,
+                    description: p.description,
+                    images: (() => { try { const r = JSON.parse(p.image); return Array.isArray(r) ? r : [p.image]; } catch { return [p.image]; } })() }
+                : x
+            )
+          );
+        } else if (payload.eventType === 'DELETE') {
+          setProducts(prev => prev.filter(x => x.id !== payload.old.id));
+        }
+      }
+    )
+    .subscribe();
+
+  return () => { supabase.removeChannel(channel); };
+}, []);
+
+// Realtime: orders
+useEffect(() => {
+  const channel = supabase
+    .channel('orders-realtime')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'orders' },
+      (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const o = payload.new as any;
+          const newOrder: Order = {
+            id: o.id,
+            buyerId: o.buyer_id ?? null,
+            sellerId: o.seller_id ?? null,
+            productId: o.product_id ?? null,
+            productTitle: o.product_title,
+            amount: o.amount,
+            currency: o.currency ?? 'NGN',
+            status: o.status,
+            korapayReference: o.korapay_reference ?? null,
+            buyerEmail: o.buyer_email ?? null,
+            buyerName: o.buyer_name ?? null,
+            buyerPhone: o.buyer_phone ?? null,
+            buyerAddress: o.buyer_address ?? null,
+            createdAt: o.created_at,
+            updatedAt: o.updated_at,
+          };
+          setOrders(prev =>
+            prev.some(x => x.id === newOrder.id) ? prev : [newOrder, ...prev]
+          );
+        } else if (payload.eventType === 'UPDATE') {
+          const o = payload.new as any;
+          setOrders(prev =>
+            prev.map(x =>
+              x.id === o.id
+                ? { ...x, status: o.status, updatedAt: o.updated_at }
+                : x
+            )
+          );
+        }
+      }
+    )
+    .subscribe();
+
+  return () => { supabase.removeChannel(channel); };
+}, []);
   const showToast = (msg: string) => setToast({ message: msg, id: Date.now() });
 
   // --- AUTH ---
