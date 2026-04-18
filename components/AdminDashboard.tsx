@@ -478,9 +478,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               <div><p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Amount</p><p className="text-gray-600 dark:text-gray-300 font-bold">₦{o.amount.toLocaleString()} {o.currency}</p></div>
                               <div><p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Last Updated</p><p className="text-gray-600 dark:text-gray-300">{formatDate(o.updatedAt)}</p></div>
                             </div>
-                            </div> {/* ← this closes the grid */}
+                          
 
-{/* ✅ ADD BUTTON HERE */}
+
 <button
   onClick={() => {
     const text = [
