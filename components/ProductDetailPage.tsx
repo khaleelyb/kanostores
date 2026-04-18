@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Product, User } from '../types';
 import { Icon } from './Icon';
 import { PaymentModal } from './PaymentModal';
+import { CART_CATEGORIES } from '../constants';
 
 const VerifiedBadge = () => (
   <svg className="w-4 h-4 text-blue-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" title="Verified seller">
@@ -57,15 +58,16 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
   // Only admins can see phone number, WhatsApp, and Call buttons
   const isAdmin = currentUser?.isAdmin === true;
-
   const rawPhone = seller?.phone?.trim() ?? '';
   const dialPhone = rawPhone.replace(/[\s\-()]/g, '');
   const waPhone = dialPhone.startsWith('+') ? dialPhone.slice(1) : dialPhone;
-  // hasPhone is true only when the current user is an admin AND a phone exists
   const hasPhone = isAdmin && dialPhone.length >= 7;
 
+  // Add to Cart only available for consumable/personal care categories
+  const canAddToCart = CART_CATEGORIES.has(product.category);
+
   const whatsappMessage = encodeURIComponent(
-    `Hi "${product.title}" `
+    `Hi, I'm interested in your "${product.title}" listed on Kano Market. Is it still available?`
   );
 
   const isOwnListing = currentUser?.id === product.sellerId;
@@ -113,7 +115,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 </svg>
               </div>
             )}
-
             {images.length > 0 && (
               <div className="absolute bottom-3 right-3 bg-black/40 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 pointer-events-none">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -172,8 +173,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           {/* Right: actions + seller */}
           <div className="space-y-4">
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 md:sticky md:top-24">
-
-              {/* ── CONTACT BUTTONS ── */}
               <div className="space-y-2.5">
 
                 {/* Buy Now */}
@@ -200,19 +199,21 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   Message on App
                 </button>
 
-                {/* Add to Cart */}
-                <button
-                  onClick={() => onAddToCart(product)}
-                  className="w-full flex items-center justify-center gap-2 bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50 text-orange-700 dark:text-orange-300 font-bold py-3 rounded-xl transition-colors text-sm border border-orange-200 dark:border-orange-800"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.875-7.16a60.077 60.077 0 0 0-16.836-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-                  </svg>
-                  {cartItemCount > 0 ? `In Cart (${cartItemCount}) — Add More` : 'Add to Cart'}
-                </button>
+                {/* Add to Cart — only for allowed categories */}
+                {canAddToCart && (
+                  <button
+                    onClick={() => onAddToCart(product)}
+                    className="w-full flex items-center justify-center gap-2 bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50 text-orange-700 dark:text-orange-300 font-bold py-3 rounded-xl transition-colors text-sm border border-orange-200 dark:border-orange-800"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.875-7.16a60.077 60.077 0 0 0-16.836-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+                    </svg>
+                    {cartItemCount > 0 ? `In Cart (${cartItemCount}) — Add More` : 'Add to Cart'}
+                  </button>
+                )}
 
                 {/* WhatsApp — admin only */}
-                {hasPhone ? (
+                {hasPhone && (
                   <a
                     href={`https://wa.me/${waPhone}?text=${whatsappMessage}`}
                     target="_blank"
@@ -224,10 +225,10 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     </svg>
                     WhatsApp Seller
                   </a>
-                ) : null /* hidden for non-admins or when no phone */ }
+                )}
 
                 {/* Call — admin only */}
-                {hasPhone ? (
+                {hasPhone && (
                   <a
                     href={`tel:${dialPhone}`}
                     className="w-full flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors shadow-md shadow-blue-200 dark:shadow-blue-900/30 text-sm"
@@ -237,7 +238,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     </svg>
                     Call Seller
                   </a>
-                ) : null /* hidden for non-admins or when no phone */ }
+                )}
 
                 {/* Save */}
                 <button
@@ -255,7 +256,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 </button>
               </div>
 
-              {/* Seller info — phone number hidden from non-admins */}
+              {/* Seller info — phone only for admins */}
               {seller && (
                 <div className="mt-5 pt-5 border-t border-gray-100 dark:border-gray-800">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Seller</p>
@@ -271,7 +272,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                         {seller.isVerified && <VerifiedBadge />}
                         {isActiveBoosted(seller) && <BoostedBadge />}
                       </div>
-                      {/* Phone shown only to admins */}
                       {hasPhone && (
                         <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
                           <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -301,22 +301,17 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           >
             <Icon name="close" className="w-5 h-5" />
           </button>
-
           <img
             src={images[selectedImageIndex]}
             alt={product.title}
             className="max-w-full max-h-[85vh] object-contain rounded-lg"
             onClick={e => e.stopPropagation()}
           />
-
           {images.length > 1 && (
             <>
               <button
                 className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors"
-                onClick={e => {
-                  e.stopPropagation();
-                  setSelectedImageIndex(i => (i === 0 ? images.length - 1 : i - 1));
-                }}
+                onClick={e => { e.stopPropagation(); setSelectedImageIndex(i => (i === 0 ? images.length - 1 : i - 1)); }}
               >
                 <svg className="w-5 h-5 rotate-180" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
@@ -324,10 +319,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </button>
               <button
                 className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors"
-                onClick={e => {
-                  e.stopPropagation();
-                  setSelectedImageIndex(i => (i === images.length - 1 ? 0 : i + 1));
-                }}
+                onClick={e => { e.stopPropagation(); setSelectedImageIndex(i => (i === images.length - 1 ? 0 : i + 1)); }}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
