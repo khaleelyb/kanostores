@@ -311,10 +311,14 @@ const handleSaveBuyerDetails = async (email: string, address: string, phone: str
     if (ok) { setProducts(products.filter(p => p.id !== id)); showToast('Product deleted.'); }
     else showToast('Error deleting product.');
   };
-
+const handleAdminEditProduct = (product: Product) => {
+    setProductToEdit(product);
+    setIsAddProductModalOpen(true);
+  };
   const handleAdminDeleteUser = async (id: string) => {
     const userProds = products.filter(p => p.sellerId === id);
     await Promise.all(userProds.map(p => db.deleteProduct(p.id)));
+    await db.deleteUser(id);
     setProducts(products.filter(p => p.sellerId !== id));
     setUsers(users.filter(u => u.id !== id));
     showToast('User removed.');
@@ -556,12 +560,13 @@ cartItemCount={cartItems.find(i => i.product.id === selectedProduct.id)?.quantit
           ? <AdminDashboard 
               products={products} 
               users={users} 
-              orders={orders}  // ADDED: orders prop
+              orders={orders}
               currentUser={currentUser} 
-              onDeleteProduct={handleAdminDeleteProduct} 
+              onDeleteProduct={handleAdminDeleteProduct}
+              onEditProduct={handleAdminEditProduct}
               onDeleteUser={handleAdminDeleteUser} 
               onUpdateUser={handleAdminUpdateUser} 
-              onUpdateOrderStatus={handleUpdateOrderStatus}  // ADDED: order status handler
+              onUpdateOrderStatus={handleUpdateOrderStatus}
               onBack={handleBack} 
             />
           : <AuthPrompt page="home" onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })} />;
