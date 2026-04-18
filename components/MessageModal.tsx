@@ -11,7 +11,7 @@ interface MessageModalProps {
 }
 
 export const MessageModal: React.FC<MessageModalProps> = ({ isOpen, onClose, product, onSendMessage }) => {
-  const [message, setMessage] = useState(`Hi, I'm interested in your "${product.title}". Is it still available?`);
+  const [message, setMessage] = useState(`Hi,"${product.title}".`);
 
   if (!isOpen) return null;
 
