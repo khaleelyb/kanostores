@@ -29,7 +29,7 @@ import { CartPage } from './components/CartPage';
 import { CartItem } from './types';
 
 // ── Admin usernames – add yours here ──────────────────────────────────────────
-const ADMIN_USERNAMES = ['admin', 'superadmin', 'khaleel0070', 'superadmin0070'];
+const ADMIN_USERNAMES = ['admin', 'superadmin007gunfu', 'admin1', 'superadmin00700'];
 // ──────────────────────────────────────────────────────────────────────────────
 // At the top of App.tsx, add this helper (outside the component):
 const isActiveBoosted = (user: User) =>
