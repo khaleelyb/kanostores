@@ -593,7 +593,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <img src={seller.profilePicture} alt={seller.name} className="w-5 h-5 rounded-full object-cover" />
             <p className="text-gray-600 dark:text-gray-300">{seller.name} (@{seller.username})</p>
             {seller.phone && (
-              <a  href={`https://wa.me/${waPhone}?text=${whatsappMessage}`}</a>
+              <a href={`tel:${seller.phone}`} className="text-orange-500 hover:text-orange-600">{seller.phone}</a>
             )}
           </div>
         </div>
