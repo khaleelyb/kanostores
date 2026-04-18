@@ -481,29 +481,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           
 
 
+{/* 👇 REPLACE COPY BUTTON WITH THIS */}
 <button
   onClick={() => {
+    if (!seller?.phone) {
+      alert('Seller phone not available');
+      return;
+    }
+
+    const phone = seller.phone.replace(/^0/, '234').replace(/\D/g, '');
+
     const text = [
-      `📦 Product: ${o.productTitle}`,
-      `💰 Amount: ₦${o.amount.toLocaleString()}`,
-      `📊 Status: ${STATUS_LABELS[o.status]}`,
+      `Hello ${seller.name},`,
+      ``,
+      `📦 New Order Details`,
+      `Product: ${o.productTitle}`,
+      `Amount: ₦${o.amount.toLocaleString()}`,
+      `Status: ${STATUS_LABELS[o.status]}`,
+      ``,
       `👤 Buyer: ${o.buyerName ?? '—'}`,
-      o.buyerPhone ? `📞 Buyer Phone: ${o.buyerPhone}` : null,
-      o.buyerAddress ? `📍 Address: ${o.buyerAddress}` : null,
-      seller ? `🛍 Seller: ${seller.name}` : null,
-      seller?.phone ? `📞 Seller Phone: ${seller.phone}` : null,
-      o.korapayReference ? `💳 Ref: ${o.korapayReference}` : null,
+      o.buyerPhone ? `📞 Buyer Phone: ${o.buyerPhone}` : '',
+      o.buyerAddress ? `📍 Address: ${o.buyerAddress}` : '',
+      ``,
+      o.korapayReference ? `💳 Payment Ref: ${o.korapayReference}` : '',
     ]
       .filter(Boolean)
       .join('\n');
 
-    navigator.clipboard.writeText(text);
-  }}
-  className="mt-3 w-full sm:w-auto text-xs font-bold bg-gray-900 text-white px-3 py-2 rounded-lg hover:bg-black transition-colors"
->
-  📋 Copy Order Details
-</button>
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 
+    window.open(url, '_blank');
+  }}
+  className="mt-3 w-full sm:w-auto text-xs font-bold bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors"
+>
+  💬 Send to WhatsApp Seller
+</button>
 
                             <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
                               <p className="text-gray-400 font-semibold uppercase tracking-wide mb-2">Update Status Manually</p>
