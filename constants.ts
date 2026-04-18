@@ -10,7 +10,7 @@ export const CATEGORIES = [
   'Herbals and supplements',
   'Houses',
   'Accesories and chargers',
-  'Food stuffs',
+  'Order Food',
   'Home, Furniture & Appliances',
   'Body care, soaps and perfumes',
   'Electronics',
