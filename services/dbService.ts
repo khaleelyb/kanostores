@@ -25,13 +25,13 @@ const rowToUser = (u: any): User => ({
     username: u.username,
     profilePicture: u.profile_picture,
     phone: u.phone ?? undefined,
-    bio: u.bio ?? undefined,          // ← add
+    bio: u.bio ?? undefined,
     isVerified: u.is_verified ?? false,
     isBoosted: u.is_boosted ?? false,
     boostedUntil: u.boosted_until ?? null,
     isApprovedSeller: u.is_approved_seller ?? false,
     email: u.email ?? undefined,
-address: u.address ?? undefined,
+    address: u.address ?? undefined,
 });
 
 // ── Users ─────────────────────────────────────────────────────────────────────
@@ -57,22 +57,37 @@ export const createUser = async (user: Omit<User, 'id'>): Promise<User | null> =
 export const updateUser = async (userId: string, updates: Partial<User>): Promise<boolean> => {
     try {
         const payload: Record<string, unknown> = {};
-        if (updates.name !== undefined)            payload.name = updates.name;
-        if (updates.username !== undefined)        payload.username = updates.username;
-        if (updates.profilePicture !== undefined)  payload.profile_picture = updates.profilePicture;
-        if (updates.phone !== undefined)           payload.phone = updates.phone || null;
-        if (updates.bio !== undefined) payload.bio = updates.bio || null;
-        if (updates.isVerified !== undefined)      payload.is_verified = updates.isVerified;
-        if (updates.isBoosted !== undefined)       payload.is_boosted = updates.isBoosted;
-        if (updates.boostedUntil !== undefined)    payload.boosted_until = updates.boostedUntil;
+        if (updates.name !== undefined)             payload.name = updates.name;
+        if (updates.username !== undefined)         payload.username = updates.username;
+        if (updates.profilePicture !== undefined)   payload.profile_picture = updates.profilePicture;
+        if (updates.phone !== undefined)            payload.phone = updates.phone || null;
+        if (updates.bio !== undefined)              payload.bio = updates.bio || null;
+        if (updates.isVerified !== undefined)       payload.is_verified = updates.isVerified;
+        if (updates.isBoosted !== undefined)        payload.is_boosted = updates.isBoosted;
+        if (updates.boostedUntil !== undefined)     payload.boosted_until = updates.boostedUntil;
         if (updates.isApprovedSeller !== undefined) payload.is_approved_seller = updates.isApprovedSeller;
-        if (updates.email !== undefined)   payload.email = updates.email || null;
-if (updates.address !== undefined) payload.address = updates.address || null;
+        if (updates.email !== undefined)            payload.email = updates.email || null;
+        if (updates.address !== undefined)          payload.address = updates.address || null;
 
         const { error } = await supabase.from('users').update(payload).eq('id', userId);
         if (error) throw error;
         return true;
     } catch (e) { console.error('updateUser:', e); return false; }
+};
+
+// ── DELETE USER (also cleans up their saved_products rows) ───────────────────
+export const deleteUser = async (userId: string): Promise<boolean> => {
+    try {
+        // 1. Remove saved_products rows for this user (avoids FK constraint errors)
+        await supabase.from('saved_products').delete().eq('user_id', userId);
+
+        // 2. Remove any saved_products rows where others saved this user's products
+        //    (handled by ON DELETE CASCADE if set, otherwise manual)
+        // 3. Delete the user row itself
+        const { error } = await supabase.from('users').delete().eq('id', userId);
+        if (error) throw error;
+        return true;
+    } catch (e) { console.error('deleteUser:', e); return false; }
 };
 
 // ── Products ──────────────────────────────────────────────────────────────────
@@ -109,7 +124,12 @@ export const createProduct = async (product: Omit<Product, 'id'>): Promise<Produ
 
 export const updateProduct = async (productId: string, updates: Partial<Product>): Promise<boolean> => {
     try {
-        const payload: Record<string, unknown> = { title: updates.title, price: updates.price, category: updates.category, description: updates.description };
+        const payload: Record<string, unknown> = {
+            title: updates.title,
+            price: updates.price,
+            category: updates.category,
+            description: updates.description,
+        };
         if (updates.images) payload.image = JSON.stringify(updates.images);
         const { error } = await supabase.from('products').update(payload).eq('id', productId);
         if (error) throw error;
@@ -196,7 +216,7 @@ export const uploadImage = async (file: File, bucket: 'products' | 'profiles'): 
     } catch (e) { console.error('uploadImage:', e); return null; }
 };
 
-// ── Orders ─────────────────────────────────────────────────────────────────────
+// ── Orders ────────────────────────────────────────────────────────────────────
 export interface Order {
   id: string;
   buyerId: string | null;
@@ -209,8 +229,8 @@ export interface Order {
   korapayReference: string | null;
   buyerEmail: string | null;
   buyerName: string | null;
-  buyerPhone: string | null;    // NEW
-  buyerAddress: string | null;  // NEW
+  buyerPhone: string | null;
+  buyerAddress: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -234,8 +254,8 @@ export const getOrders = async (): Promise<Order[]> => {
       korapayReference: o.korapay_reference ?? null,
       buyerEmail: o.buyer_email ?? null,
       buyerName: o.buyer_name ?? null,
-      buyerPhone: o.buyer_phone ?? null,      // NEW
-      buyerAddress: o.buyer_address ?? null,  // NEW
+      buyerPhone: o.buyer_phone ?? null,
+      buyerAddress: o.buyer_address ?? null,
       createdAt: o.created_at,
       updatedAt: o.updated_at,
     }));
