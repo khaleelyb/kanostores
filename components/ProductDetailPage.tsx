@@ -65,7 +65,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const hasPhone = isAdmin && dialPhone.length >= 7;
 
   const whatsappMessage = encodeURIComponent(
-    `Hi, I'm interested in your "${product.title}" listed on Kano Market. Is it still available?`
+    `Hi "${product.title}" `
   );
 
   const isOwnListing = currentUser?.id === product.sellerId;
