@@ -29,7 +29,7 @@ import { CartPage } from './components/CartPage';
 import { CartItem } from './types';
 
 // ── Admin usernames – add yours here ──────────────────────────────────────────
-const ADMIN_USERNAMES = ['admin', 'superadmin007gunfu', 'admin1', 'superadmin00700'];
+const ADMIN_USERNAMES = ['admin', 'superadmin'];
 // ──────────────────────────────────────────────────────────────────────────────
 // At the top of App.tsx, add this helper (outside the component):
 const isActiveBoosted = (user: User) =>
@@ -305,23 +305,12 @@ const handleSaveBuyerDetails = async (email: string, address: string, phone: str
     }
   };
 
-  const handleAdminEditProduct = (product: Product) => {
-  setProductToEdit(product);
-  setIsAddProductModalOpen(true);
-};
-  
   // Admin delete (no confirm dialog — admin dashboard has its own)
-  const handleAdminDeleteUser = async (id: string) => {
-  // Delete all their products from DB first
-  const userProds = products.filter(p => p.sellerId === id);
-  await Promise.all(userProds.map(p => db.deleteProduct(p.id)));
-  // Delete the user from DB
-  await db.deleteUser(id);
-  // Update local state
-  setProducts(products.filter(p => p.sellerId !== id));
-  setUsers(users.filter(u => u.id !== id));
-  showToast('User removed.');
-};
+  const handleAdminDeleteProduct = async (id: string) => {
+    const ok = await db.deleteProduct(id);
+    if (ok) { setProducts(products.filter(p => p.id !== id)); showToast('Product deleted.'); }
+    else showToast('Error deleting product.');
+  };
 
   const handleAdminDeleteUser = async (id: string) => {
     const userProds = products.filter(p => p.sellerId === id);
@@ -569,8 +558,7 @@ cartItemCount={cartItems.find(i => i.product.id === selectedProduct.id)?.quantit
               users={users} 
               orders={orders}  // ADDED: orders prop
               currentUser={currentUser} 
-              onDeleteProduct={handleAdminDeleteProduct}
-              onEditProduct={handleAdminEditProduct} 
+              onDeleteProduct={handleAdminDeleteProduct} 
               onDeleteUser={handleAdminDeleteUser} 
               onUpdateUser={handleAdminUpdateUser} 
               onUpdateOrderStatus={handleUpdateOrderStatus}  // ADDED: order status handler
