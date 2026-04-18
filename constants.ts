@@ -1,4 +1,3 @@
-
 export const CATEGORIES = [
   'Mobile Phones & Tablets',
   'Computers',
@@ -31,3 +30,13 @@ export const CATEGORIES = [
   'Animals & Pets',
   'Jobs'
 ];
+
+// Only these categories support Add to Cart
+export const CART_CATEGORIES = new Set([
+  'Herbals and supplements',
+  'Food stuffs',
+  'Beauty & Personal Care',
+  'Health & Medicine',
+  'Body care, soaps and perfumes',
+  'Food, Agriculture & Farming',
+]);
