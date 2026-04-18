@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Icon } from './Icon';
 import { User, Product, Theme, Page } from '../types';
 import { ProductGrid } from './ProductGrid';
+import { HelpSupportPage } from './HelpSupportPage';
 
 const VerifiedBadge = () => (
   <svg className="w-6 h-6 text-blue-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" title="Verified account">
@@ -52,10 +53,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   onSelectProduct, onEditProduct, onDeleteProduct, theme, setTheme,
 }) => {
   const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!currentUser) {
     return <div className="text-center py-20"><p>Please log in to see your profile.</p></div>;
+  }
+
+  // Show Help & Support page inline
+  if (showHelp) {
+    return <HelpSupportPage onClose={() => setShowHelp(false)} />;
   }
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -160,12 +167,15 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
           <ThemeSelector theme={theme} setTheme={setTheme} />
 
+          {/* Help & Support — now opens HelpSupportPage */}
           <button
-            onClick={() => alert('Feature coming soon!')}
+            onClick={() => setShowHelp(true)}
             className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left"
           >
             <div className="w-8 h-8 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0">
-              <Icon name="home" className="w-4 h-4 text-green-500" />
+              <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
+              </svg>
             </div>
             <span className="flex-1 text-sm font-medium text-gray-700 dark:text-gray-300">Help & Support</span>
             <Icon name="chevron-right" className="w-4 h-4 text-gray-300 dark:text-gray-600" />
