@@ -27,6 +27,7 @@ import { isSupabaseConfigured } from './services/supabase_client';
 import { supabase } from './services/supabase_client';
 import { CartPage } from './components/CartPage';
 import { CartItem } from './types';
+import { CATEGORIES, CART_CATEGORIES } from './constants';
 
 // ── Admin usernames – add yours here ──────────────────────────────────────────
 const ADMIN_USERNAMES = ['admin', 'superadmin'];
@@ -394,6 +395,10 @@ const handleSaveBuyerDetails = async (email: string, address: string, phone: str
 
   const handleAddToCart = (product: Product) => {
   if (!currentUser) { setAuthModal({ isOpen: true, view: 'login' }); return; }
+  if (!CART_CATEGORIES.has(product.category)) {
+    showToast('This item cannot be added to cart.');
+    return;
+  }
   setCartItems(prev => {
     const existing = prev.find(i => i.product.id === product.id);
     if (existing) return prev.map(i => i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
