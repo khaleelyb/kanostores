@@ -17,6 +17,7 @@ export interface Order {
   buyerAddress: string | null;
   createdAt: string;
   updatedAt: string;
+  phone?: string;
 }
 
 interface AdminDashboardProps {
@@ -449,10 +450,61 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               {o.buyerPhone && <div><p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Buyer Phone</p><a href={`tel:${o.buyerPhone}`} className="text-orange-500 hover:text-orange-600 font-medium">{o.buyerPhone}</a></div>}
                               {o.buyerAddress && <div className="sm:col-span-2"><p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Delivery Address</p><p className="text-gray-600 dark:text-gray-300">{o.buyerAddress}</p></div>}
                               {o.korapayReference && <div><p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Payment Reference</p><p className="font-mono text-gray-600 dark:text-gray-300 break-all">{o.korapayReference}</p></div>}
-                              {seller && <div><p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Seller</p><div className="flex items-center gap-2"><img src={seller.profilePicture} alt={seller.name} className="w-5 h-5 rounded-full object-cover" /><p className="text-gray-600 dark:text-gray-300">{seller.name} (@{seller.username})</p></div></div>}
+                              {seller && (
+  <div>
+    <p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Seller</p>
+
+    <div className="flex items-center gap-2">
+      <img
+        src={seller.profilePicture}
+        alt={seller.name}
+        className="w-5 h-5 rounded-full object-cover"
+      />
+      <p className="text-gray-600 dark:text-gray-300">
+        {seller.name} (@{seller.username})
+      </p>
+    </div>
+
+    {seller.phone && (
+      <a
+        href={`tel:${seller.phone}`}
+        className="text-orange-500 hover:text-orange-600 text-xs font-medium mt-1 block"
+      >
+        📞 {seller.phone}
+      </a>
+    )}
+  </div>
+)}
                               <div><p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Amount</p><p className="text-gray-600 dark:text-gray-300 font-bold">₦{o.amount.toLocaleString()} {o.currency}</p></div>
                               <div><p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Last Updated</p><p className="text-gray-600 dark:text-gray-300">{formatDate(o.updatedAt)}</p></div>
                             </div>
+                            </div> {/* ← this closes the grid */}
+
+{/* ✅ ADD BUTTON HERE */}
+<button
+  onClick={() => {
+    const text = [
+      `📦 Product: ${o.productTitle}`,
+      `💰 Amount: ₦${o.amount.toLocaleString()}`,
+      `📊 Status: ${STATUS_LABELS[o.status]}`,
+      `👤 Buyer: ${o.buyerName ?? '—'}`,
+      o.buyerPhone ? `📞 Buyer Phone: ${o.buyerPhone}` : null,
+      o.buyerAddress ? `📍 Address: ${o.buyerAddress}` : null,
+      seller ? `🛍 Seller: ${seller.name}` : null,
+      seller?.phone ? `📞 Seller Phone: ${seller.phone}` : null,
+      o.korapayReference ? `💳 Ref: ${o.korapayReference}` : null,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    navigator.clipboard.writeText(text);
+  }}
+  className="mt-3 w-full sm:w-auto text-xs font-bold bg-gray-900 text-white px-3 py-2 rounded-lg hover:bg-black transition-colors"
+>
+  📋 Copy Order Details
+</button>
+
+
                             <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
                               <p className="text-gray-400 font-semibold uppercase tracking-wide mb-2">Update Status Manually</p>
                               <div className="flex flex-wrap gap-2">
