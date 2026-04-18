@@ -162,9 +162,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     orders.filter(o => o.status === 'success' || o.status === 'shipped' || o.status === 'delivered')
       .reduce((s, o) => s + o.amount, 0), [orders]);
 
-  const tops = useMemo(() => {
+  const topSellers = useMemo(() => {
     const c: Record<string, number> = {};
-    products.forEach(p => { c[p.Id] = (c[p.Id] || 0) + 1; });
+    products.forEach(p => { c[p.sellerId] = (c[p.sellerId] || 0) + 1; });
     return Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 5)
       .map(([id, count]) => ({ user: users.find(u => u.id === id), count }))
       .filter(x => x.user);
@@ -294,13 +294,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Top s */}
+              {/* Top Sellers */}
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
                 <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                  <span className="w-2 h-2 bg-orange-500 rounded-full" />Top s
+                  <span className="w-2 h-2 bg-orange-500 rounded-full" />Top Sellers
                 </h3>
                 <div className="space-y-3">
-                  {tops.map(({ user, count }, i) => user && (
+                  {topSellers.map(({ user, count }, i) => user && (
                     <div key={user.id} className="flex items-center gap-3">
                       <span className="text-xs font-bold text-gray-300 dark:text-gray-600 w-4">#{i + 1}</span>
                       <div className="relative flex-shrink-0">
@@ -317,7 +317,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <span className="text-xs font-bold bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full">{count} listings</span>
                     </div>
                   ))}
-                  {tops.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No s yet</p>}
+                  {topSellers.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No sellers yet</p>}
                 </div>
               </div>
 
@@ -431,7 +431,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="divide-y divide-gray-50 dark:divide-gray-800">
                 {filteredOrders.map(o => {
                   const buyer = users.find(u => u.id === o.buyerId);
-                  const  = users.find(u => u.id === o.Id);
+                  const seller = users.find(u => u.id === o.sellerId);
                   const product = products.find(p => p.id === o.productId);
                   const isExpanded = expandedOrderId === o.id;
                   const nextStatus = NEXT_STATUS[o.status];
@@ -586,27 +586,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <p className="font-mono text-gray-600 dark:text-gray-300 break-all">{o.korapayReference}</p>
         </div>
       )}
-      { && (
-  <div>
-    <p className="text-gray-400 font-semibold uppercase tracking-wide mb-1"></p>
-    <div className="flex items-center gap-2 flex-wrap">
-      <img src={.profilePicture} alt={.name} className="w-5 h-5 rounded-full object-cover" />
-      <p className="text-gray-600 dark:text-gray-300">{.name} (@{.username})</p>
-      {.phone && (
-        <a href={`tel:${.phone}`} className="text-orange-500 hover:text-orange-600">{seller.phone}</a>
-      )}
       {seller && (
-  <div>
-    <p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Seller</p>
-    <div className="flex items-center gap-2">
-      <img src={seller.profilePicture} alt={seller.name} className="w-5 h-5 rounded-full object-cover" />
-      <p className="text-gray-600 dark:text-gray-300">{seller.name} (@{seller.username})</p>
-      {seller.phone && (
-        <a href={`tel:${seller.phone}`} className="text-orange-500 hover:text-orange-600">{seller.phone}</a>
+        <div>
+          <p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Seller</p>
+          <div className="flex items-center gap-2">
+            <img src={seller.profilePicture} alt={seller.name} className="w-5 h-5 rounded-full object-cover" />
+            <p className="text-gray-600 dark:text-gray-300">{seller.name} (@{seller.username})</p>
+            {seller.phone && (
+              <a href={`tel:${seller.phone}`} className="text-orange-500 hover:text-orange-600">{seller.phone}</a>
+            )}
+          </div>
+        </div>
       )}
-    </div>
-  </div>
-)}
       <div>
         <p className="text-gray-400 font-semibold uppercase tracking-wide mb-1">Amount</p>
         <p className="text-gray-600 dark:text-gray-300 font-bold">₦{o.amount.toLocaleString()} {o.currency}</p>
