@@ -17,7 +17,7 @@ import { ShopProductsPage } from './components/ShopProductsPage';
 import { AdminDashboard } from './components/AdminDashboard';
 import { Toast } from './components/Toast';
 import { Product, User, Theme, Message, MessageThread, Page } from './types';
-import { CATEGORIES } from './constants';
+import { CATEGORIES, CART_CATEGORIES } from './constants';
 import { generateAvatar } from './utils/avatar';
 import { ChatView } from './components/ChatView';
 import { MessageModal } from './components/MessageModal';
