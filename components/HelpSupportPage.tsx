@@ -158,7 +158,7 @@ export const HelpSupportPage: React.FC<HelpSupportPageProps> = ({ onClose }) => 
 
         {/* Footer note */}
         <p className="text-center text-xs text-gray-400 dark:text-gray-500 pb-4">
-          Kano Market · © {new Date().getFullYear()} · All rights reserved
+          Kano Stores · © {new Date().getFullYear()} · All rights reserved
         </p>
       </div>
     </div>
