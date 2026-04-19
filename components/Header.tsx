@@ -49,7 +49,7 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
               <div className="hidden sm:block">
                 <span className="font-bold text-gray-900 dark:text-white text-lg leading-none tracking-tight">Kano</span>
-                <span className="font-bold text-orange-500 text-lg leading-none tracking-tight">Market</span>
+                <span className="font-bold text-orange-500 text-lg leading-none tracking-tight">Stores</span>
               </div>
             </button>
 
