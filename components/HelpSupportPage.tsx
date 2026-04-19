@@ -26,16 +26,12 @@ const FAQ = [
     a: ' Square (1:1) is the standard, ensuring consistency across product grids.Use the same aspect ratio and background for all products in a collection.',
   },
   {
-    q: 'How do I message a seller?',
-    a: 'Open any product listing and tap "Message on App" to start a conversation directly with the seller.',
+    q: 'How do I add my phone number and shop bio?',
+    a: 'Go to your profile page and tap on edit profile and add your number and shop information .',
   },
   {
     q: 'How do I save items?',
     a: 'Tap the heart icon on any product card or listing to save it. View all saved items in the Saved tab.',
-  },
-  {
-    q: 'Can I edit or delete my listing?',
-    a: 'Yes — go to your Profile, scroll to My Listings, and tap Edit or Delete on any of your ads.',
   },
 ];
 
