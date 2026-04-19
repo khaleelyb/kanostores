@@ -22,8 +22,8 @@ const FAQ = [
     a: 'Payments are processed securely through Payment Gateway. After paying, the seller will be notified and will arrange delivery to your provided address.',
   },
   {
-    q: 'My order was paid — what happens next?',
-    a: 'After your payment is confirmed, the seller will prepare and ship your item.',
+    q: 'Best Camera settings for product upload',
+    a: ' Square (1:1) is the standard, ensuring consistency across product grids.Use the same aspect ratio and background for all products in a collection.',
   },
   {
     q: 'How do I message a seller?',
