@@ -5,8 +5,8 @@ interface HelpSupportPageProps {
 }
 
 const ADMIN_EMAIL = 'support@kanomarket.com';
-const ADMIN_WHATSAPP = '+2348100000000'; // update to real number
-const ADMIN_WHATSAPP_DISPLAY = '+234 810 000 0000';
+const ADMIN_WHATSAPP = '+2347067703769'; // update to real number
+const ADMIN_WHATSAPP_DISPLAY = '+2347067703769';
 
 const FAQ = [
   {
@@ -19,11 +19,11 @@ const FAQ = [
   },
   {
     q: 'How does payment work?',
-    a: 'Payments are processed securely through KoraPay. After paying, the seller will be notified and will arrange delivery to your provided address.',
+    a: 'Payments are processed securely through Payment Gateway. After paying, the seller will be notified and will arrange delivery to your provided address.',
   },
   {
     q: 'My order was paid — what happens next?',
-    a: 'After your payment is confirmed, the seller will prepare and ship your item. You can track status updates in your order history.',
+    a: 'After your payment is confirmed, the seller will prepare and ship your item.',
   },
   {
     q: 'How do I message a seller?',
