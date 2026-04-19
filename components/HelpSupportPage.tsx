@@ -4,7 +4,7 @@ interface HelpSupportPageProps {
   onClose: () => void;
 }
 
-const ADMIN_EMAIL = 'support@kanomarket.com';
+const ADMIN_EMAIL = 'kanostoreng@gmail.com';
 const ADMIN_WHATSAPP = '+2347067703769'; // update to real number
 const ADMIN_WHATSAPP_DISPLAY = '+2347067703769';
 
