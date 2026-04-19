@@ -27,7 +27,7 @@ const CATEGORY_TEMPLATES: Record<string, { template: string; chips: SpecChips }>
   'Mobile Phones & Tablets': {
     template: `Brand: \nModel: \nRAM: \nStorage: \nCondition: \nBattery health: \nColor: \nAccessories included: \nExtra notes: `,
     chips: {
-      condition: ['Brand New', 'Like New', 'Good Used', 'Fair Used'],
+      condition: ['Brand New', 'Like New'],
       ram: ['2GB', '3GB', '4GB', '6GB', '8GB', '12GB', '16GB'],
       storage: ['16GB', '32GB', '64GB', '128GB', '256GB', '512GB', '1TB'],
       brand: ['Samsung', 'iPhone', 'Tecno', 'Infinix', 'Itel', 'Xiaomi', 'OnePlus', 'Huawei'],
@@ -36,8 +36,8 @@ const CATEGORY_TEMPLATES: Record<string, { template: string; chips: SpecChips }>
   'Computers': {
     template: `Brand: \nModel: \nProcessor: \nRAM: \nStorage: \nScreen size: \nCondition: \nOS installed: \nExtra notes: `,
     chips: {
-      condition: ['Brand New', 'Like New', 'Good Used', 'Fair Used'],
-      ram: ['4GB', '8GB', '16GB', '32GB'],
+      condition: ['Brand New', 'Like New'],
+      ram: ['2GB', '4GB', '8GB', '16GB', '32GB'],
       storage: ['128GB SSD', '256GB SSD', '512GB SSD', '1TB HDD', '1TB SSD', '2TB HDD'],
       brand: ['HP', 'Dell', 'Lenovo', 'Apple', 'Asus', 'Acer', 'Toshiba'],
     },
@@ -45,20 +45,20 @@ const CATEGORY_TEMPLATES: Record<string, { template: string; chips: SpecChips }>
   'Electronics': {
     template: `Brand: \nModel: \nCondition: \nAge: \nFaults (if any): \nAccessories included: \nExtra notes: `,
     chips: {
-      condition: ['Brand New', 'Like New', 'Good Used', 'Fair Used', 'For Parts'],
+      condition: ['Brand New', 'Like New'],
       brand: ['Samsung', 'LG', 'Sony', 'Hisense', 'Syinix', 'Polystar'],
     },
   },
   'Home, Furniture & Appliances': {
     template: `Item: \nBrand: \nCondition: \nDimensions: \nColor: \nFaults (if any): \nExtra notes: `,
     chips: {
-      condition: ['Brand New', 'Like New', 'Good Used', 'Fair Used'],
+      condition: ['Brand New', 'Like New'],
     },
   },
   'Cars': {
     template: `Make: \nModel: \nYear: \nCondition: \nMileage: \nColor: \nEngine size: \nTransmission: \nFuel type: \nExtra notes: `,
     chips: {
-      condition: ['Brand New', 'Nigerian Used', 'Foreign Used', 'Salvage'],
+      condition: ['Brand New', 'Nigerian Used', 'Foreign Used'],
       extra: [
         { label: 'Transmission', values: ['Manual', 'Automatic'] },
         { label: 'Fuel', values: ['Petrol', 'Diesel', 'Electric', 'Hybrid'] },
