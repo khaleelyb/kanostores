@@ -47,7 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <path d="M3 9.5L12 3L21 9.5V20C21 20.5523 20.5523 21 20 21H15V15H9V21H4C3.44772 21 3 20.5523 3 20V9.5Z" fill="white"/>
                 </svg>
               </div>
-              <div className="hidden sm:block">
+              <div className="block">
                 <span className="font-bold text-gray-900 dark:text-white text-lg leading-none tracking-tight">Kano</span>
                 <span className="font-bold text-orange-500 text-lg leading-none tracking-tight">Stores</span>
               </div>
