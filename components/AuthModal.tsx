@@ -116,7 +116,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
 
                         {/* Username */}
                         <div>
-                            <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
+                            <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
                             <input
                                 type="text" id="Email" value={username}
                                 onChange={e => setUsername(e.target.value)}
