@@ -61,6 +61,8 @@ const App: React.FC = () => {
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
   const [authModal, setAuthModal] = useState<{ isOpen: boolean; view: 'login' | 'register' }>({ isOpen: false, view: 'login' });
   const [messageModal, setMessageModal] = useState<{ isOpen: boolean; product: Product | null }>({ isOpen: false, product: null });
+  const [pinModal, setPinModal] = useState<{ isOpen: boolean; mode: 'enter' | 'setup' }>({ isOpen: false, mode: 'enter' });
+  const [pinUnlocked, setPinUnlocked] = useState(false);
 
   // --- INITIAL DATA LOAD ---
   useEffect(() => {
@@ -222,16 +224,62 @@ useEffect(() => {
 
   // --- AUTH ---
   const handleLogin = async (data: AuthData) => {
-    const user = users.find(u => u.username === data.username);
-    if (user) {
-      const withAdmin = { ...user, isAdmin: ADMIN_USERNAMES.includes(user.username) };
+  const user = users.find(u => u.username === data.username);
+  if (user) {
+    const withAdmin = { ...user, isAdmin: ADMIN_USERNAMES.includes(user.username) };
+    if (withAdmin.pin) {
+      // Store temporarily, show PIN entry
       setCurrentUser(withAdmin);
+      setPinUnlocked(false);
+      setPinModal({ isOpen: true, mode: 'enter' });
+    } else {
+      // No PIN yet — log in and offer setup
+      setCurrentUser(withAdmin);
+      setPinUnlocked(true);
       setAuthModal({ isOpen: false, view: 'login' });
       showToast(`Welcome back, ${user.name}!`);
-    } else {
-      showToast('User not found. Try registering.');
+      // Optionally prompt PIN setup after first login:
+      // setTimeout(() => setPinModal({ isOpen: true, mode: 'setup' }), 600);
     }
-  };
+    setAuthModal({ isOpen: false, view: 'login' });
+  } else {
+    showToast('User not found. Try registering.');
+  }
+};
+  const handlePinSuccess = async (enteredPin: string) => {
+  if (!currentUser) return;
+  if (pinModal.mode === 'enter') {
+    if (enteredPin === currentUser.pin) {
+      setPinUnlocked(true);
+      setPinModal({ isOpen: false, mode: 'enter' });
+      showToast(`Welcome back, ${currentUser.name}!`);
+    } else {
+      // Return a signal to the modal to show error — simplest: use a ref or re-open with error
+      showToast('Wrong PIN. Try again.');
+      setPinModal({ isOpen: false, mode: 'enter' });
+      setTimeout(() => setPinModal({ isOpen: true, mode: 'enter' }), 50);
+    }
+  } else if (pinModal.mode === 'setup') {
+    const ok = await db.setUserPin(currentUser.id, enteredPin);
+    if (ok) {
+      setCurrentUser(prev => prev ? { ...prev, pin: enteredPin } : prev);
+      setPinUnlocked(true);
+      setPinModal({ isOpen: false, mode: 'setup' });
+      showToast('PIN set successfully!');
+    }
+  }
+};
+
+const handleForgotPin = async (username: string, newPin: string): Promise<boolean> => {
+  const result = await db.getUserPinByUsername(username);
+  if (!result) return false;
+  const ok = await db.setUserPin(result.id, newPin);
+  if (ok && currentUser && result.id === currentUser.id) {
+    setCurrentUser(prev => prev ? { ...prev, pin: newPin } : prev);
+    setPinUnlocked(true);
+  }
+  return ok;
+};
 
   const handleRegister = async (data: AuthData) => {
     if (!isSupabaseConfigured) { showToast('Supabase is not configured.'); return; }
