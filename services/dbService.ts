@@ -32,6 +32,7 @@ const rowToUser = (u: any): User => ({
     isApprovedSeller: u.is_approved_seller ?? false,
     email: u.email ?? undefined,
     address: u.address ?? undefined,
+    pin: u.pin ?? null,
 });
 
 // ── Users ─────────────────────────────────────────────────────────────────────
