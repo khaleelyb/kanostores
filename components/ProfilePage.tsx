@@ -61,7 +61,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     return <div className="text-center py-20"><p>Please log in to see your profile.</p></div>;
   }
 
-  // Show Help & Support page inline
   if (showHelp) {
     return <HelpSupportPage onClose={() => setShowHelp(false)} />;
   }
@@ -77,6 +76,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+
       {/* Profile Hero */}
       <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
@@ -98,12 +98,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
             {newImagePreview && (
               <div className="flex items-center gap-2 mb-3">
-                <button onClick={() => { onUpdateProfilePicture(newImagePreview); setNewImagePreview(null); }}
-                  className="bg-orange-500 text-white text-sm font-semibold px-4 py-1.5 rounded-xl hover:bg-orange-600 transition-colors">
+                <button
+                  onClick={() => { onUpdateProfilePicture(newImagePreview); setNewImagePreview(null); }}
+                  className="bg-orange-500 text-white text-sm font-semibold px-4 py-1.5 rounded-xl hover:bg-orange-600 transition-colors"
+                >
                   Save Photo
                 </button>
-                <button onClick={() => setNewImagePreview(null)}
-                  className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-sm font-semibold px-4 py-1.5 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                <button
+                  onClick={() => setNewImagePreview(null)}
+                  className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-sm font-semibold px-4 py-1.5 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
                   Cancel
                 </button>
               </div>
@@ -122,7 +126,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               </div>
               {currentUser.isAdmin && (
                 <div className="flex items-center gap-1.5 bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md shadow-orange-200 dark:shadow-orange-900/40">
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" /></svg>
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+                  </svg>
                   Admin
                 </div>
               )}
@@ -132,6 +138,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       </div>
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+
         {/* Admin Panel Button */}
         {currentUser.isAdmin && (
           <button
@@ -153,8 +160,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           </button>
         )}
 
-        {/* Settings Card */}
+        {/* Settings Card — all options together including PIN */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden divide-y divide-gray-50 dark:divide-gray-800">
+
+          {/* Edit Profile */}
           <button
             onClick={() => setActivePage('edit-profile')}
             className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left"
@@ -166,9 +175,31 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             <Icon name="chevron-right" className="w-4 h-4 text-gray-300 dark:text-gray-600" />
           </button>
 
+          {/* PIN */}
+          <button
+            onClick={onSetPin}
+            className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left"
+          >
+            <div className="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {currentUser.pin ? 'Change PIN' : 'Set PIN'}
+              </span>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {currentUser.pin ? 'Update your 4-digit login PIN' : 'Add a PIN to secure your account'}
+              </p>
+            </div>
+            <Icon name="chevron-right" className="w-4 h-4 text-gray-300 dark:text-gray-600" />
+          </button>
+
+          {/* Theme */}
           <ThemeSelector theme={theme} setTheme={setTheme} />
 
-          {/* Help & Support — now opens HelpSupportPage */}
+          {/* Help & Support */}
           <button
             onClick={() => setShowHelp(true)}
             className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left"
@@ -183,7 +214,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           </button>
         </div>
 
-       
+        {/* Log Out */}
         <button
           onClick={onLogout}
           className="w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-2xl border border-red-100 dark:border-red-900/30 transition-colors"
@@ -193,27 +224,19 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           </svg>
           Log Out
         </button>
-         <button
-  onClick={onSetPin}
-  className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left"
->
-  <div className="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center flex-shrink-0">
-    <svg className="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-    </svg>
-  </div>
-  <span className="flex-1 text-sm font-medium text-gray-700 dark:text-gray-300">
-    {currentUser?.pin ? 'Change PIN' : 'Set PIN'}
-  </span>
-  <Icon name="chevron-right" className="w-4 h-4 text-gray-300 dark:text-gray-600" />
-</button>
       </div>
 
-      {/* My Ads */}
+      {/* My Listings */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-5">My Listings</h2>
         {userProducts.length > 0 ? (
-          <ProductGrid products={userProducts} onMessageSeller={onMessageSeller} savedProductIds={savedProductIds} onToggleSave={onToggleSave} onSelectProduct={onSelectProduct}>
+          <ProductGrid
+            products={userProducts}
+            onMessageSeller={onMessageSeller}
+            savedProductIds={savedProductIds}
+            onToggleSave={onToggleSave}
+            onSelectProduct={onSelectProduct}
+          >
             {({ product }: { product: Product }) => (
               <div className="flex justify-end gap-3 px-3.5 pb-3 -mt-1">
                 <button onClick={() => onEditProduct(product)} className="text-xs font-semibold text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-2.5 py-1 rounded-lg transition-colors">Edit</button>
