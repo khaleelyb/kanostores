@@ -275,3 +275,19 @@ export const updateOrderStatus = async (
     return true;
   } catch (e) { console.error('updateOrderStatus:', e); return false; }
 };
+
+export const setUserPin = async (userId: string, pin: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase.from('users').update({ pin }).eq('id', userId);
+    if (error) throw error;
+    return true;
+  } catch (e) { console.error('setUserPin:', e); return false; }
+};
+
+export const getUserPinByUsername = async (username: string): Promise<{ id: string; pin: string | null } | null> => {
+  try {
+    const { data, error } = await supabase.from('users').select('id, pin').eq('username', username).single();
+    if (error) throw error;
+    return data ? { id: data.id, pin: data.pin ?? null } : null;
+  } catch (e) { console.error('getUserPinByUsername:', e); return null; }
+};
