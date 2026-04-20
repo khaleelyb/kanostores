@@ -223,27 +223,22 @@ useEffect(() => {
   const showToast = (msg: string) => setToast({ message: msg, id: Date.now() });
 
   // --- AUTH ---
-  const handleLogin = async (data: AuthData) => {
+ const handleLogin = async (data: AuthData) => {
   const user = users.find(u => u.username === data.username);
   if (user) {
     const withAdmin = { ...user, isAdmin: ADMIN_USERNAMES.includes(user.username) };
     if (withAdmin.pin) {
-      // Store temporarily, show PIN entry
       setCurrentUser(withAdmin);
       setPinUnlocked(false);
       setPinModal({ isOpen: true, mode: 'enter' });
     } else {
-      // No PIN yet — log in and offer setup
       setCurrentUser(withAdmin);
       setPinUnlocked(true);
-      setAuthModal({ isOpen: false, view: 'login' });
       showToast(`Welcome back, ${user.name}!`);
-      // Optionally prompt PIN setup after first login:
-      // setTimeout(() => setPinModal({ isOpen: true, mode: 'setup' }), 600);
     }
     setAuthModal({ isOpen: false, view: 'login' });
   } else {
-    showToast('User not found. Try registering.');
+    showToast('Username not found. Try registering.');
   }
 };
   const handlePinSuccess = async (enteredPin: string) => {
@@ -282,17 +277,23 @@ const handleForgotPin = async (username: string, newPin: string): Promise<boolea
 };
 
   const handleRegister = async (data: AuthData) => {
-    if (!isSupabaseConfigured) { showToast('Supabase is not configured.'); return; }
-    if (users.some(u => u.username === data.username)) { showToast('Username already taken.'); return; }
-    const newUser = await db.createUser({ name: data.name!, username: data.username!, profilePicture: data.profilePicture || generateAvatar(data.name!) });
-    if (newUser) {
-      const withAdmin = { ...newUser, isAdmin: ADMIN_USERNAMES.includes(newUser.username) };
-      setUsers(prev => [withAdmin, ...prev]);
-      setCurrentUser(withAdmin);
-      setAuthModal({ isOpen: false, view: 'login' });
-      showToast(`Welcome, ${newUser.name}!`);
-    } else { showToast('Error creating account.'); }
-  };
+  if (!isSupabaseConfigured) { showToast('Supabase is not configured.'); return; }
+  if (users.some(u => u.username === data.username)) { showToast('Username already taken.'); return; }
+  const newUser = await db.createUser({
+    name: data.name!,
+    username: data.username!,
+    profilePicture: data.profilePicture || generateAvatar(data.name!),
+  });
+  if (newUser) {
+    const withAdmin = { ...newUser, isAdmin: ADMIN_USERNAMES.includes(newUser.username) };
+    setUsers(prev => [withAdmin, ...prev]);
+    setCurrentUser(withAdmin);
+    setAuthModal({ isOpen: false, view: 'login' });
+    showToast(`Welcome, ${newUser.name}!`);
+  } else {
+    showToast('Error creating account.');
+  }
+};
 
   const handleLogout = () => {
     setCurrentUser(null);
