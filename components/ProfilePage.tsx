@@ -24,6 +24,7 @@ interface ProfilePageProps {
   onDeleteProduct: (productId: string) => void;
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  onSetPin: () => void;
 }
 
 const ThemeSelector: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }> = ({ theme, setTheme }) => (
@@ -182,6 +183,20 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           </button>
         </div>
 
+        <button
+  onClick={onSetPin}
+  className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left"
+>
+  <div className="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center flex-shrink-0">
+    <svg className="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+    </svg>
+  </div>
+  <span className="flex-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+    {currentUser?.pin ? 'Change PIN' : 'Set PIN'}
+  </span>
+  <Icon name="chevron-right" className="w-4 h-4 text-gray-300 dark:text-gray-600" />
+</button>
         <button
           onClick={onLogout}
           className="w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-2xl border border-red-100 dark:border-red-900/30 transition-colors"
