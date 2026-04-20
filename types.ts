@@ -24,6 +24,7 @@ export interface User {
   isApprovedSeller?: boolean;
   email?: string;
   address?: string;
+  pin?: string | null;
 }
 
 export type Theme = 'light' | 'dark' | 'system';
