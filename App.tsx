@@ -641,11 +641,35 @@ case 'cart':
         onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })}
       />
     : <AuthPrompt page="cart" onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })} />;
-      case 'profile':
-        return currentUser
-          ? <ProfilePage currentUser={currentUser} onLogout={handleLogout} onUpdateProfilePicture={handleUpdateProfilePicture} setActivePage={handlePageChange} userProducts={userProducts} onMessageSeller={handleMessageSeller} savedProductIds={savedProductIds} onToggleSave={handleToggleSave} onSelectProduct={handleSelectProduct} onEditProduct={p => { setProductToEdit(p); setIsAddProductModalOpen(true); }} onDeleteProduct={handleDeleteProduct} theme={theme} setTheme={setTheme} />
-          : <AuthPrompt page="profile" onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })} />;
-
+     case 'profile':
+  return currentUser
+    ? (
+      <ProfilePage
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        onUpdateProfilePicture={handleUpdateProfilePicture}
+        setActivePage={handlePageChange}
+        userProducts={userProducts}
+        onMessageSeller={handleMessageSeller}
+        savedProductIds={savedProductIds}
+        onToggleSave={handleToggleSave}
+        onSelectProduct={handleSelectProduct}
+        onEditProduct={p => {
+          setProductToEdit(p);
+          setIsAddProductModalOpen(true);
+        }}
+        onDeleteProduct={handleDeleteProduct}
+        theme={theme}
+        setTheme={setTheme}
+        onSetPin={() => setPinModal({ isOpen: true, mode: 'setup' })}  // ✅ added here
+      />
+    )
+    : (
+      <AuthPrompt
+        page="profile"
+        onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })}
+      />
+    );
       case 'edit-profile':
         return currentUser
           ? <EditProfilePage currentUser={currentUser} onSaveChanges={handleUpdateProfile} onClose={handleBack} />
