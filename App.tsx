@@ -952,6 +952,14 @@ case 'cart':
         onUpdateProduct={handleUpdateProduct}
         productToEdit={productToEdit}
       />
+      <PinModal
+  isOpen={pinModal.isOpen}
+  mode={pinModal.mode}
+  username={currentUser?.username}
+  onSuccess={handlePinSuccess}
+  onClose={pinModal.mode === 'setup' ? () => setPinModal({ isOpen: false, mode: 'setup' }) : undefined}
+  onForgotPin={handleForgotPin}
+/>
       <AuthModal
         isOpen={authModal.isOpen}
         onClose={() => setAuthModal({ isOpen: false, view: 'login' })}
