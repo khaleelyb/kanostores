@@ -51,7 +51,7 @@ const ThemeSelector: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }> = 
 export const ProfilePage: React.FC<ProfilePageProps> = ({
   currentUser, onLogout, onUpdateProfilePicture, setActivePage,
   userProducts, onMessageSeller, savedProductIds, onToggleSave,
-  onSelectProduct, onEditProduct, onDeleteProduct, theme, setTheme,
+  onSelectProduct, onEditProduct, onDeleteProduct, theme, setTheme, onSetPin,
 }) => {
   const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
