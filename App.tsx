@@ -27,6 +27,7 @@ import { isSupabaseConfigured } from './services/supabase_client';
 import { supabase } from './services/supabase_client';
 import { CartPage } from './components/CartPage';
 import { CartItem } from './types';
+import { PinModal } from './components/PinModal';
 
 // ── Admin usernames – add yours here ──────────────────────────────────────────
 const ADMIN_USERNAMES = ['admin', 'superadmin007gunfu', 'admin1', 'superadmin00700'];
