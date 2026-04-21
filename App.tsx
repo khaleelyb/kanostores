@@ -28,6 +28,7 @@ import { supabase } from './services/supabase_client';
 import { CartPage } from './components/CartPage';
 import { CartItem } from './types';
 import { PinModal } from './components/PinModal';
+import { changeUserPassword } from './services/dbService';
 
 // ── Admin usernames – add yours here ──────────────────────────────────────────
 const ADMIN_USERNAMES = ['admin', 'superadmin007gunfu', 'admin1', 'superadmin00700'];
@@ -225,21 +226,33 @@ useEffect(() => {
   // --- AUTH ---
  const handleLogin = async (data: AuthData) => {
   const user = users.find(u => u.username === data.username);
-  if (user) {
-    const withAdmin = { ...user, isAdmin: ADMIN_USERNAMES.includes(user.username) };
-    if (withAdmin.pin) {
-      setCurrentUser(withAdmin);
-      setPinUnlocked(false);
-      setPinModal({ isOpen: true, mode: 'enter' });
-    } else {
-      setCurrentUser(withAdmin);
-      setPinUnlocked(true);
-      showToast(`Welcome back, ${user.name}!`);
+  if (!user) { showToast('Username not found. Try registering.'); return; }
+  
+  // Verify password if the user has one set
+  if (data.password) {
+    const { data: dbUser } = await supabase
+      .from('users')
+      .select('password')
+      .eq('id', user.id)
+      .single();
+    
+    if (dbUser?.password && dbUser.password !== data.password) {
+      showToast('Incorrect password. Please try again.');
+      return;
     }
-    setAuthModal({ isOpen: false, view: 'login' });
-  } else {
-    showToast('Username not found. Try registering.');
   }
+  
+  const withAdmin = { ...user, isAdmin: ADMIN_USERNAMES.includes(user.username) };
+  if (withAdmin.pin) {
+    setCurrentUser(withAdmin);
+    setPinUnlocked(false);
+    setPinModal({ isOpen: true, mode: 'enter' });
+  } else {
+    setCurrentUser(withAdmin);
+    setPinUnlocked(true);
+    showToast(`Welcome back, ${user.name}!`);
+  }
+  setAuthModal({ isOpen: false, view: 'login' });
 };
   const handlePinSuccess = async (enteredPin: string) => {
   if (!currentUser) return;
@@ -427,6 +440,13 @@ const handleAdminEditProduct = (product: Product) => {
     window.history.pushState({ view: 'category', category, page: 'home' }, '', `#category=${encodeURIComponent(category)}`);
     setSelectedCategory(category); setSelectedShop(null); setSelectedProduct(null);
   };
+  // 2. Add handler function (inside the App component, near other handlers):
+const handleChangePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
+  if (!currentUser) return false;
+  const ok = await changeUserPassword(currentUser.id, currentPassword, newPassword);
+  if (ok) showToast('Password updated successfully!');
+  return ok;
+};
 
   const handleSelectShop = (seller: User) => {
     if (!selectedCategory) return;
@@ -663,6 +683,7 @@ case 'cart':
         theme={theme}
         setTheme={setTheme}
         onSetPin={() => setPinModal({ isOpen: true, mode: 'setup' })}  // ✅ added here
+        onChangePassword={handleChangePassword}   // ← ADD THIS LINE
       />
     )
     : (
