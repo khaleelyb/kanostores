@@ -292,3 +292,56 @@ export const getUserPinByUsername = async (username: string): Promise<{ id: stri
     return data ? { id: data.id, pin: data.pin ?? null } : null;
   } catch (e) { console.error('getUserPinByUsername:', e); return null; }
 };
+// ── PASSWORD FUNCTIONS — add these to the bottom of services/dbService.ts ────
+
+/**
+ * Verifies a user's current password. Returns true if matches.
+ * Passwords are stored as plain text in the `password` column.
+ * (For production you'd hash these — but this matches the current auth pattern.)
+ */
+export const verifyUserPassword = async (userId: string, password: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('password')
+      .eq('id', userId)
+      .single();
+    if (error) throw error;
+    return (data?.password ?? '') === password;
+  } catch (e) { console.error('verifyUserPassword:', e); return false; }
+};
+
+/**
+ * Updates a user's password after verifying the current one.
+ */
+export const changeUserPassword = async (
+  userId: string,
+  currentPassword: string,
+  newPassword: string
+): Promise<boolean> => {
+  try {
+    const isValid = await verifyUserPassword(userId, currentPassword);
+    if (!isValid) return false;
+
+    const { error } = await supabase
+      .from('users')
+      .update({ password: newPassword })
+      .eq('id', userId);
+    if (error) throw error;
+    return true;
+  } catch (e) { console.error('changeUserPassword:', e); return false; }
+};
+
+/**
+ * Sets a password for a user (used during registration or reset).
+ */
+export const setUserPassword = async (userId: string, password: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('users')
+      .update({ password })
+      .eq('id', userId);
+    if (error) throw error;
+    return true;
+  } catch (e) { console.error('setUserPassword:', e); return false; }
+};
