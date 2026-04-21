@@ -11,7 +11,7 @@ export const CATEGORIES = [
   'Houses',
   'Accesories and chargers',
   'Order Food',
-  'Home, Furniture & Appliances',
+  'Games and Toys',
   'Body care, soaps and perfumes',
   'Electronics',
   'vehicle parts and accesories',
