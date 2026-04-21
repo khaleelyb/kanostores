@@ -21,7 +21,7 @@ export const CATEGORIES = [
   'Health & Medicine',
   'Vehicles',
   'Property',
-  'Food stores',
+  'Grocery',
   'Home, Furniture & Appliances',
   'Services',
   'Repair & Construction',
