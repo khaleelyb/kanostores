@@ -3,6 +3,9 @@ import { Icon } from './Icon';
 import { User, Product, Theme, Page } from '../types';
 import { ProductGrid } from './ProductGrid';
 import { HelpSupportPage } from './HelpSupportPage';
+import { ChangePasswordModal } from './ChangePasswordModal';
+import { PrivacyPage } from './PrivacyPage';
+import { TermsPage } from './TermsPage';
 
 const VerifiedBadge = () => (
   <svg className="w-6 h-6 text-blue-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" title="Verified account">
@@ -25,6 +28,7 @@ interface ProfilePageProps {
   theme: Theme;
   setTheme: (theme: Theme) => void;
   onSetPin: () => void;
+  onChangePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
 }
 
 const ThemeSelector: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }> = ({ theme, setTheme }) => (
@@ -52,18 +56,22 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   currentUser, onLogout, onUpdateProfilePicture, setActivePage,
   userProducts, onMessageSeller, savedProductIds, onToggleSave,
   onSelectProduct, onEditProduct, onDeleteProduct, theme, setTheme, onSetPin,
+  onChangePassword,
 }) => {
   const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!currentUser) {
     return <div className="text-center py-20"><p>Please log in to see your profile.</p></div>;
   }
 
-  if (showHelp) {
-    return <HelpSupportPage onClose={() => setShowHelp(false)} />;
-  }
+  if (showHelp) return <HelpSupportPage onClose={() => setShowHelp(false)} />;
+  if (showPrivacy) return <PrivacyPage onClose={() => setShowPrivacy(false)} />;
+  if (showTerms) return <TermsPage onClose={() => setShowTerms(false)} />;
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -160,7 +168,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           </button>
         )}
 
-        {/* Settings Card — all options together including PIN */}
+        {/* Settings Card */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden divide-y divide-gray-50 dark:divide-gray-800">
 
           {/* Edit Profile */}
@@ -196,6 +204,23 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             <Icon name="chevron-right" className="w-4 h-4 text-gray-300 dark:text-gray-600" />
           </button>
 
+          {/* Change Password */}
+          <button
+            onClick={() => setShowChangePassword(true)}
+            className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left"
+          >
+            <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 0 1 21.75 8.25Z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Change Password</span>
+              <p className="text-xs text-gray-400 mt-0.5">Update your login password</p>
+            </div>
+            <Icon name="chevron-right" className="w-4 h-4 text-gray-300 dark:text-gray-600" />
+          </button>
+
           {/* Theme */}
           <ThemeSelector theme={theme} setTheme={setTheme} />
 
@@ -224,6 +249,23 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           </svg>
           Log Out
         </button>
+
+        {/* Privacy & Terms Footer */}
+        <div className="flex items-center justify-center gap-4 pt-2 pb-4">
+          <button
+            onClick={() => setShowPrivacy(true)}
+            className="text-xs text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-colors"
+          >
+            Privacy Policy
+          </button>
+          <span className="text-gray-200 dark:text-gray-700">·</span>
+          <button
+            onClick={() => setShowTerms(true)}
+            className="text-xs text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-colors"
+          >
+            Terms of Service
+          </button>
+        </div>
       </div>
 
       {/* My Listings */}
@@ -252,6 +294,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           </div>
         )}
       </div>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
+        onChangePassword={onChangePassword}
+      />
     </div>
   );
 };
