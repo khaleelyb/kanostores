@@ -21,7 +21,6 @@ export const CATEGORIES = [
   'Health & Medicine',
   'Vehicles',
   'Property',
-  'Grocery',
   'Home, Furniture & Appliances',
   'Services',
   'Repair & Construction',
@@ -34,6 +33,7 @@ export const CATEGORIES = [
 // Only these categories support Add to Cart
 export const CART_CATEGORIES = new Set([
   'Herbals and supplements',
+  'Grocery',
   'Food stuffs',
   'Beauty & Personal Care',
   'Health & Medicine',
