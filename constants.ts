@@ -39,4 +39,6 @@ export const CART_CATEGORIES = new Set([
   'Health & Medicine',
   'Body care, soaps and perfumes',
   'Food, Agriculture & Farming',
+  'Grocery',
+  'Order Food',
 ]);
