@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 
 interface HelpSupportPageProps {
   onClose: () => void;
+  onShowPrivacy?: () => void;
+  onShowTerms?: () => void;
 }
 
 const ADMIN_EMAIL = 'kanostoreng@gmail.com';
-const ADMIN_WHATSAPP = '+2347067703769'; // update to real number
+const ADMIN_WHATSAPP = '+2347067703769';
 const ADMIN_WHATSAPP_DISPLAY = '+2347067703769';
 
 const FAQ = [
@@ -22,12 +24,12 @@ const FAQ = [
     a: 'Payments are processed securely through Payment Gateway. After paying, the seller will be notified and will arrange delivery to your provided address.',
   },
   {
-    q: 'Best Camera settings for product upload',
-    a: ' Square (1:1) is the standard, ensuring consistency across product grids.Use the same aspect ratio and background for all products in a collection.',
+    q: 'Best camera settings for product upload',
+    a: 'Square (1:1) is the standard, ensuring consistency across product grids. Use the same aspect ratio and background for all products in a collection.',
   },
   {
     q: 'How do I add my phone number and shop bio?',
-    a: 'Go to your profile page and tap on edit profile and add your number and shop information .',
+    a: 'Go to your profile page and tap on Edit Profile and add your number and shop information.',
   },
   {
     q: 'How do I save items?',
@@ -35,7 +37,7 @@ const FAQ = [
   },
 ];
 
-export const HelpSupportPage: React.FC<HelpSupportPageProps> = ({ onClose }) => {
+export const HelpSupportPage: React.FC<HelpSupportPageProps> = ({ onClose, onShowPrivacy, onShowTerms }) => {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const waMessage = encodeURIComponent('Hi, I need help with Kano Market.');
@@ -151,6 +153,47 @@ export const HelpSupportPage: React.FC<HelpSupportPageProps> = ({ onClose }) => 
             ))}
           </div>
         </div>
+
+        {/* Legal links */}
+        {(onShowPrivacy || onShowTerms) && (
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-50 dark:border-gray-800">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Legal</p>
+            </div>
+            {onShowPrivacy && (
+              <button
+                onClick={onShowPrivacy}
+                className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-b border-gray-50 dark:border-gray-800 group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+                  </svg>
+                </div>
+                <span className="flex-1 text-left text-sm font-semibold text-gray-900 dark:text-white">Privacy Policy</span>
+                <svg className="w-4 h-4 text-gray-300 group-hover:text-orange-400 transition-colors" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                </svg>
+              </button>
+            )}
+            {onShowTerms && (
+              <button
+                onClick={onShowTerms}
+                className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-orange-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                  </svg>
+                </div>
+                <span className="flex-1 text-left text-sm font-semibold text-gray-900 dark:text-white">Terms of Service</span>
+                <svg className="w-4 h-4 text-gray-300 group-hover:text-orange-400 transition-colors" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Footer note */}
         <p className="text-center text-xs text-gray-400 dark:text-gray-500 pb-4">
