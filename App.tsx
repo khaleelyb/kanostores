@@ -663,11 +663,14 @@ case 'cart':
         cartItems={cartItems}
         onUpdateQuantity={handleUpdateCartQuantity}
         onRemoveItem={handleRemoveFromCart}
-        onCheckout={(product) => { handleSelectProduct(product); /* payment modal opens there */ }}
+        onCheckout={(product) => { handleSelectProduct(product); }}
         onSelectProduct={handleSelectProduct}
         currentUser={currentUser}
         onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })}
+        users={users}
+        onCartCheckoutSuccess={() => setCartItems([])}
       />
+    : <AuthPrompt page="cart" onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })} />;
     : <AuthPrompt page="cart" onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })} />;
      case 'profile':
   return currentUser
