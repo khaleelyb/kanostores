@@ -46,6 +46,7 @@ const App: React.FC = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [threads, setThreads] = useState<MessageThread[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const sessionCategoryPick = new Map<string, string>();
 
   // UI State
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -879,7 +880,17 @@ case 'cart':
 
       <div className="space-y-6 mb-8">
         {boostedUsers.map(seller => {
-          const sellerProducts = products.filter(p => p.sellerId === seller.id).slice(0, 4);
+          // Pick a random category for this seller (stable per session)
+const sellerAllProducts = products.filter(p => p.sellerId === seller.id);
+const sellerCategories = [...new Set(sellerAllProducts.map(p => p.category))];
+
+if (!sessionCategoryPick.has(seller.id) || !sellerCategories.includes(sessionCategoryPick.get(seller.id)!)) {
+  const randomCat = sellerCategories[Math.floor(Math.random() * sellerCategories.length)];
+  sessionCategoryPick.set(seller.id, randomCat);
+}
+
+const pickedCategory = sessionCategoryPick.get(seller.id)!;
+const sellerProducts = sellerAllProducts.filter(p => p.category === pickedCategory).slice(0, 4);
           if (sellerProducts.length === 0) return null;
           return (
             <div key={seller.id} className="bg-white dark:bg-gray-900 rounded-2xl border-2 border-amber-200 dark:border-amber-800/50 overflow-hidden">
