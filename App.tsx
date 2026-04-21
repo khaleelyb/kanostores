@@ -671,7 +671,6 @@ case 'cart':
         onCartCheckoutSuccess={() => setCartItems([])}
       />
     : <AuthPrompt page="cart" onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })} />;
-    : <AuthPrompt page="cart" onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })} />;
      case 'profile':
   return currentUser
     ? (
