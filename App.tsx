@@ -918,19 +918,23 @@ const sellerProducts = sellerAllProducts.filter(p => p.category === pickedCatego
                         </svg>
                       )}
                     </div>
-                    <p className="text-xs text-gray-400">@{seller.username} · {products.filter(p => p.sellerId === seller.id).length} listings</p>
+                    <p className="text-xs text-gray-400">
+  @{seller.username} · 
+  <span className="text-orange-500 font-semibold ml-1">{pickedCategory}</span>
+</p>
                     {seller.bio && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{seller.bio}</p>}
                   </div>
                 </div>
                 <button
                   onClick={() => {
-                    const firstCategory = sellerProducts[0]?.category ?? null;
-                    if (firstCategory) {
-                      setSelectedCategory(firstCategory);
-                      setSelectedShop(seller);
-                      window.history.pushState({ view: 'shop', sellerId: seller.id, category: firstCategory, page: 'home' }, '', `#shop=${seller.id}`);
-                    }
-                  }}
+  setSelectedCategory(pickedCategory);
+  setSelectedShop(seller);
+  window.history.pushState(
+    { view: 'shop', sellerId: seller.id, category: pickedCategory, page: 'home' },
+    '',
+    `#shop=${seller.id}`
+  );
+}}
                   className="flex items-center gap-1 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50 px-3 py-1.5 rounded-xl transition-colors"
                 >
                   View Store
