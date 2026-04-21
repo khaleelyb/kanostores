@@ -290,7 +290,7 @@ const handleForgotPin = async (username: string, newPin: string): Promise<boolea
   return ok;
 };
 
-  const handleRegister = async (data: AuthData) => {
+const handleRegister = async (data: AuthData) => {
   if (!isSupabaseConfigured) { showToast('Supabase is not configured.'); return; }
   if (users.some(u => u.username === data.username)) { showToast('Username already taken.'); return; }
   const newUser = await db.createUser({
@@ -299,6 +299,11 @@ const handleForgotPin = async (username: string, newPin: string): Promise<boolea
     profilePicture: data.profilePicture || generateAvatar(data.name!),
   });
   if (newUser) {
+    // ✅ Save the password after user creation
+    if (data.password) {
+      await setUserPassword(newUser.id, data.password);
+    }
+    
     const withAdmin = { ...newUser, isAdmin: ADMIN_USERNAMES.includes(newUser.username) };
     setUsers(prev => [withAdmin, ...prev]);
     setCurrentUser(withAdmin);
