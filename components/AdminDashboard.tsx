@@ -496,6 +496,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       ``,
       `📦 New Order Details`,
       `Product: ${o.productTitle}`,
+      o.productId ? `🆔 Product ID: ${o.productId}` : '',
       `Amount: ₦${o.amount.toLocaleString()}`,
       `Status: ${STATUS_LABELS[o.status]}`,
       ``,
