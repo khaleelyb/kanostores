@@ -148,27 +148,34 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
           {/* Left: title + description */}
-          <div className="md:col-span-2 space-y-4">
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
-              <span className="inline-block text-xs font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-2.5 py-0.5 rounded-full mb-3">
-                {product.category}
-              </span>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white leading-snug">{product.title}</h1>
-              <p className="text-3xl font-bold text-orange-500 mt-3">₦{product.price.toLocaleString()}</p>
-              <div className="flex items-center gap-1.5 mt-3 text-sm text-gray-400 dark:text-gray-500">
-                <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-                </svg>
-                {product.location} · Posted {product.date}
-              </div>
-            </div>
+<div className="md:col-span-2 space-y-4">
+  <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+    <span className="inline-block text-xs font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-2.5 py-0.5 rounded-full mb-3">
+      {product.category}
+    </span>
+    <h1 className="text-2xl font-bold text-gray-900 dark:text-white leading-snug">{product.title}</h1>
+    <p className="text-3xl font-bold text-orange-500 mt-3">₦{product.price.toLocaleString()}</p>
+    
+    {/* Metadata Section: Location, Date, and ID */}
+    <div className="mt-3">
+      <div className="flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500">
+        <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+        </svg>
+        {product.location} · Posted {product.date}
+      </div>
+      <p className="text-[10px] text-gray-400 dark:text-gray-600 font-mono mt-1 select-all uppercase tracking-wider">
+        Ref ID: {product.id}
+      </p>
+    </div>
+  </div>
 
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
-              <h2 className="text-base font-bold text-gray-800 dark:text-gray-200 mb-3">Description</h2>
-              <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed whitespace-pre-wrap">{product.description}</p>
-            </div>
-          </div>
+  <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+    <h2 className="text-base font-bold text-gray-800 dark:text-gray-200 mb-3">Description</h2>
+    <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed whitespace-pre-wrap">{product.description}</p>
+  </div>
+</div>
 
           {/* Right: actions + seller */}
           <div className="space-y-4">
