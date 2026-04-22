@@ -160,14 +160,9 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
                 </svg>
-      {product.location} · Posted {product.date}
-    </div>
-    {/* Added Product ID here */}
-    <p className="text-[10px] text-gray-400 dark:text-gray-600 font-mono mt-1 select-all uppercase tracking-wider">
-      Ref ID: {product.id}
-    </p>
-  </div>
-</div>
+                {product.location} · Posted {product.date}
+              </div>
+            </div>
 
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
               <h2 className="text-base font-bold text-gray-800 dark:text-gray-200 mb-3">Description</h2>
