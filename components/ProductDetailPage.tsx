@@ -166,7 +166,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
         {product.location} · Posted {product.date}
       </div>
       <p className="text-[10px] text-gray-400 dark:text-gray-600 font-mono mt-1 select-all uppercase tracking-wider">
-        Ref ID: {product.id}
+        Ref ID: {product.id.slice(0, 8)}
       </p>
     </div>
   </div>
