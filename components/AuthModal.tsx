@@ -156,16 +156,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                             </div>
                         </div>
 
-                        {/* PIN hint on login */}
-                        {view === 'login' && (
-                            <div className="flex items-center gap-2 bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-800/40 rounded-xl px-3 py-2.5">
-                                <svg className="w-4 h-4 text-orange-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-                                </svg>
-                                <p className="text-xs text-orange-700 dark:text-orange-400">If you have a PIN set, you'll be asked for it after logging in</p>
-                            </div>
-                        )}
-
                         <div className="pt-1">
                             <button
                                 type="submit"
