@@ -4,12 +4,12 @@ import { Product, User } from '../types';
 import { initiatePayment, verifyPayment } from '../services/paymentService';
 import { Icon } from './Icon';
 
-const KORAPAY_PUBLIC_KEY = import.meta.env.VITE_KORAPAY_PUBLIC_KEY ?? 'pk_test_xxxxxxxxxxxx';
+const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY ?? '';
 
 declare global {
   interface Window {
-    Korapay?: {
-      initialize: (config: object) => void;
+    PaystackPop?: {
+      setup: (config: object) => { openIframe: () => void };
     };
   }
 }
@@ -20,7 +20,7 @@ interface PaymentModalProps {
   product: Product;
   currentUser: User;
   onPaymentSuccess: (reference: string) => void;
-onSaveBuyerDetails?: (email: string, address: string, phone: string, name: string) => void;
+  onSaveBuyerDetails?: (email: string, address: string, phone: string, name: string) => void;
 }
 
 type Step = 'form' | 'processing' | 'success' | 'failed';
@@ -31,21 +31,25 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   product,
   currentUser,
   onPaymentSuccess,
+  onSaveBuyerDetails,
 }) => {
   const [step, setStep] = useState<Step>('form');
   const [name, setName] = useState(currentUser.name ?? '');
   const [phone, setPhone] = useState(currentUser.phone ?? '');
   const [email, setEmail] = useState(currentUser.email ?? '');
-const [address, setAddress] = useState(currentUser.address ?? '');
+  const [address, setAddress] = useState(currentUser.address ?? '');
   const [errorMsg, setErrorMsg] = useState('');
   const [successRef, setSuccessRef] = useState('');
   const scriptLoaded = useRef(false);
 
-  // Load KoraPay script once
+  // Load Paystack inline script once
   useEffect(() => {
-    if (scriptLoaded.current) return;
+    if (scriptLoaded.current || document.querySelector('script[src*="paystack"]')) {
+      scriptLoaded.current = true;
+      return;
+    }
     const script = document.createElement('script');
-    script.src = 'https://korablobstorage.blob.core.windows.net/modal-bucket/korapay-collections.min.js';
+    script.src = 'https://js.paystack.co/v1/inline.js';
     script.async = true;
     script.onload = () => { scriptLoaded.current = true; };
     document.body.appendChild(script);
@@ -57,7 +61,7 @@ const [address, setAddress] = useState(currentUser.address ?? '');
         setStep('form');
         setErrorMsg('');
         setEmail(currentUser.email ?? '');
-setAddress(currentUser.address ?? '');
+        setAddress(currentUser.address ?? '');
         setName(currentUser.name ?? '');
         setPhone(currentUser.phone ?? '');
       }, 300);
@@ -94,41 +98,49 @@ setAddress(currentUser.address ?? '');
       return;
     }
 
-    // Wait for KoraPay script
+    // Wait for Paystack script
     let attempts = 0;
-    while (!window.Korapay && attempts < 20) {
+    while (!window.PaystackPop && attempts < 20) {
       await new Promise(r => setTimeout(r, 150));
       attempts++;
     }
 
-    if (!window.Korapay) {
+    if (!window.PaystackPop) {
       setErrorMsg('Payment script failed to load. Please refresh and try again.');
       setStep('form');
       return;
     }
 
-    window.Korapay.initialize({
-      key: KORAPAY_PUBLIC_KEY,
-      reference: result.reference,
-      amount: result.amount,
+    const handler = window.PaystackPop.setup({
+      key: PAYSTACK_PUBLIC_KEY,
+      email: result.email,
+      amount: result.amount, // in kobo
       currency: result.currency,
-      customer: result.customer,
-      narration: `Payment for "${result.productTitle}" on Kano Market`,
-      onClose: () => { setStep('form'); },
-      onSuccess: async (data: { reference: string }) => {
-  const verification = await verifyPayment(data.reference);
-  if (verification?.status === 'success') {
-    setSuccessRef(data.reference);
-    setStep('success');
-    onPaymentSuccess(data.reference);
-    // ← save details silently
-    onSaveBuyerDetails?.(email.trim(), address.trim(), phone.trim(), name.trim());
-  } else {
-    setStep('failed');
-  }
-},
-      onFailed: () => { setStep('failed'); },
+      ref: result.reference,
+      metadata: {
+        custom_fields: [
+          { display_name: 'Product', variable_name: 'product', value: result.productTitle },
+          { display_name: 'Phone', variable_name: 'phone', value: phone.trim() },
+          { display_name: 'Address', variable_name: 'address', value: address.trim() },
+        ],
+      },
+      onClose: () => {
+        setStep('form');
+      },
+      callback: async (response: { reference: string }) => {
+        const verification = await verifyPayment(response.reference);
+        if (verification?.status === 'success') {
+          setSuccessRef(response.reference);
+          setStep('success');
+          onPaymentSuccess(response.reference);
+          onSaveBuyerDetails?.(email.trim(), address.trim(), phone.trim(), name.trim());
+        } else {
+          setStep('failed');
+        }
+      },
     });
+
+    handler.openIframe();
   };
 
   return (
@@ -170,84 +182,49 @@ setAddress(currentUser.address ?? '');
           {/* ── Checkout form ── */}
           {step === 'form' && (
             <form onSubmit={handlePay} className="space-y-4">
-
-              {/* Full Name */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Full Name</label>
+                <input type="text" value={name} onChange={e => setName(e.target.value)}
                   placeholder="Aminu Musa"
                   className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all"
-                  required
-                  autoFocus
-                />
+                  required autoFocus />
               </div>
 
-              {/* Phone Number */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={e => setPhone(e.target.value)}
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Phone Number</label>
+                <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
                   placeholder="+234 800 000 0000"
                   className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all"
-                  required
-                />
+                  required />
               </div>
 
-              {/* Email */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                  Email
-                  <span className="ml-1.5 text-xs font-normal text-gray-400">(for receipt)</span>
+                  Email <span className="ml-1.5 text-xs font-normal text-gray-400">(for receipt)</span>
                 </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all"
-                  required
-                />
+                  required />
               </div>
 
-              {/* Delivery Address */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                  Delivery Address
-                </label>
-                <textarea
-                  value={address}
-                  onChange={e => setAddress(e.target.value)}
-                  placeholder="House number, street, area, city…"
-                  rows={3}
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Delivery Address</label>
+                <textarea value={address} onChange={e => setAddress(e.target.value)}
+                  placeholder="House number, street, area, city…" rows={3}
                   className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all resize-none"
-                  required
-                />
+                  required />
               </div>
 
-              {errorMsg && (
-                <p className="text-sm text-red-500 dark:text-red-400">{errorMsg}</p>
-              )}
+              {errorMsg && <p className="text-sm text-red-500 dark:text-red-400">{errorMsg}</p>}
 
-              <button
-                type="submit"
-                className="w-full bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-bold py-3.5 rounded-xl transition-colors shadow-md shadow-orange-200 dark:shadow-orange-900/30"
-              >
+              <button type="submit"
+                className="w-full bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-bold py-3.5 rounded-xl transition-colors shadow-md shadow-orange-200 dark:shadow-orange-900/30">
                 Pay ₦{product.price.toLocaleString()}
               </button>
 
               <p className="text-center text-xs text-gray-400 dark:text-gray-500">
-                Secured by{' '}
-                <span className="font-semibold text-gray-600 dark:text-gray-400">KoraPay</span>
-                {' '}· Cards, Bank Transfer & More
+                Secured by <span className="font-semibold text-gray-600 dark:text-gray-400">Paystack</span> · Cards, Bank Transfer & USSD
               </p>
             </form>
           )}
@@ -260,7 +237,7 @@ setAddress(currentUser.address ?? '');
               </div>
               <div className="text-center">
                 <p className="font-semibold text-gray-800 dark:text-gray-200">Opening payment window…</p>
-                <p className="text-sm text-gray-400 mt-1">Complete your payment in the KoraPay window</p>
+                <p className="text-sm text-gray-400 mt-1">Complete your payment in the Paystack window</p>
               </div>
             </div>
           )}
@@ -280,10 +257,8 @@ setAddress(currentUser.address ?? '');
                   <p className="text-xs text-gray-300 dark:text-gray-600 mt-2 font-mono break-all">{successRef}</p>
                 )}
               </div>
-              <button
-                onClick={onClose}
-                className="mt-2 bg-green-500 hover:bg-green-600 text-white font-bold px-8 py-2.5 rounded-xl transition-colors"
-              >
+              <button onClick={onClose}
+                className="mt-2 bg-green-500 hover:bg-green-600 text-white font-bold px-8 py-2.5 rounded-xl transition-colors">
                 Done
               </button>
             </div>
@@ -302,16 +277,12 @@ setAddress(currentUser.address ?? '');
                 <p className="text-sm text-gray-400 mt-1">Something went wrong. Please try again.</p>
               </div>
               <div className="flex gap-3 mt-2">
-                <button
-                  onClick={onClose}
-                  className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                >
+                <button onClick={onClose}
+                  className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                   Cancel
                 </button>
-                <button
-                  onClick={() => setStep('form')}
-                  className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition-colors"
-                >
+                <button onClick={() => setStep('form')}
+                  className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition-colors">
                   Try Again
                 </button>
               </div>
