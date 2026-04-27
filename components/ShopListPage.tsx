@@ -98,9 +98,11 @@ export const ShopListPage: React.FC<ShopListPageProps> = ({ category, products, 
                         : <div className="flex items-center justify-center h-full"><span className="text-4xl opacity-30">{emoji}</span></div>
                       }
                       <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-                      <div className="absolute bottom-2 right-2">
-                        <span className="bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{stats.count} {stats.count === 1 ? 'item' : 'items'}</span>
-                      </div>
+                     <div className="absolute bottom-2 right-2">
+  <span className="bg-orange-500/90 backdrop-blur-sm text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-md shadow-sm">
+    {stats.count}
+  </span>
+</div>
                     </div>
                     <div className="p-4">
                       <div className="flex items-center gap-3">
