@@ -691,7 +691,13 @@ case 'cart':
         onDeleteProduct={handleDeleteProduct}
         theme={theme}
         setTheme={setTheme}
-        onSetPin={() => setPinModal({ isOpen: true, mode: 'setup' })}  // ✅ added here
+        onSetPin={() => {
+  if (!currentUser?.isApprovedSeller && !currentUser?.isAdmin) {
+    showToast('PIN is only available for approved sellers.');
+    return;
+  }
+  setPinModal({ isOpen: true, mode: 'setup' });
+}}  // ✅ added here
         onChangePassword={handleChangePassword}   // ← ADD THIS LINE
       />
     )
