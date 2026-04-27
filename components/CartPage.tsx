@@ -3,11 +3,13 @@ import { CartItem, Product, User } from '../types';
 import { supabase } from '../services/supabase_client';
 import { initiateCartPayment, verifyPayment } from '../services/paymentService';
 
-const KORAPAY_PUBLIC_KEY = import.meta.env.VITE_KORAPAY_PUBLIC_KEY ?? '';
+const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY ?? '';
 
 declare global {
   interface Window {
-    Korapay?: { initialize: (config: object) => void };
+    PaystackPop?: {
+      setup: (config: object) => { openIframe: () => void };
+    };
   }
 }
 
@@ -55,8 +57,8 @@ interface CartPageProps {
   onSelectProduct: (product: Product) => void;
   currentUser: User | null;
   onLoginClick: () => void;
-  users: User[];                  // ← needed to look up seller names
-  onCartCheckoutSuccess?: () => void; // ← optional: clear cart after payment
+  users: User[];
+  onCartCheckoutSuccess?: () => void;
 }
 
 // ── Buyer details form ────────────────────────────────────────────────────────
@@ -85,9 +87,9 @@ const BuyerForm: React.FC<BuyerFormProps> = ({ currentUser, onSubmit, isLoading 
   return (
     <form onSubmit={handle} className="space-y-3">
       {[
-        { label: 'Full Name',         value: name,    set: setName,    type: 'text',  ph: 'Aminu Musa' },
-        { label: 'Phone Number',      value: phone,   set: setPhone,   type: 'tel',   ph: '+234 800 000 0000' },
-        { label: 'Email (for receipt)',value: email,  set: setEmail,   type: 'email', ph: 'you@example.com' },
+        { label: 'Full Name',          value: name,    set: setName,    type: 'text',  ph: 'Aminu Musa' },
+        { label: 'Phone Number',       value: phone,   set: setPhone,   type: 'tel',   ph: '+234 800 000 0000' },
+        { label: 'Email (for receipt)', value: email,  set: setEmail,   type: 'email', ph: 'you@example.com' },
       ].map(({ label, value, set, type, ph }) => (
         <div key={label}>
           <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">{label}</label>
@@ -122,7 +124,6 @@ export const CartPage: React.FC<CartPageProps> = ({
   const [orders, setOrders]               = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
 
-  // Cart checkout state
   const [checkoutStep, setCheckoutStep]         = useState<'idle' | 'form' | 'processing' | 'done' | 'error'>('idle');
   const [pendingGroups, setPendingGroups]        = useState<SellerGroup[]>([]);
   const [currentGroupIdx, setCurrentGroupIdx]   = useState(0);
@@ -131,7 +132,6 @@ export const CartPage: React.FC<CartPageProps> = ({
 
   const total = cartItems.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
 
-  // Group cart items by seller
   type SellerGroup = {
     sellerId: string;
     sellerName: string;
@@ -157,11 +157,11 @@ export const CartPage: React.FC<CartPageProps> = ({
     });
   }, [cartItems, users]);
 
-  // Load Korapay script once
+  // Load Paystack script once
   useEffect(() => {
-    if (document.querySelector('script[src*="korapay"]')) return;
+    if (document.querySelector('script[src*="paystack"]')) return;
     const s = document.createElement('script');
-    s.src = 'https://korablobstorage.blob.core.windows.net/modal-bucket/korapay-collections.min.js';
+    s.src = 'https://js.paystack.co/v1/inline.js';
     s.async = true;
     document.body.appendChild(s);
   }, []);
@@ -185,7 +185,6 @@ export const CartPage: React.FC<CartPageProps> = ({
     }
   }, [activeTab, currentUser]);
 
-  // ── Pay all: step 1 — collect buyer details ───────────────────────────────
   const handlePayAll = () => {
     if (!currentUser) { onLoginClick(); return; }
     setPendingGroups(sellerGroups);
@@ -195,7 +194,6 @@ export const CartPage: React.FC<CartPageProps> = ({
     setCheckoutStep('form');
   };
 
-  // ── Pay all: step 2 — process each seller group sequentially ─────────────
   const processGroup = async (
     group: SellerGroup,
     details: { name: string; email: string; phone: string; address: string },
@@ -222,29 +220,35 @@ export const CartPage: React.FC<CartPageProps> = ({
 
     if (!result) { onFail(); return; }
 
-    // Wait for Korapay
     let attempts = 0;
-    while (!window.Korapay && attempts < 20) {
+    while (!window.PaystackPop && attempts < 20) {
       await new Promise(r => setTimeout(r, 150));
       attempts++;
     }
-    if (!window.Korapay) { onFail(); return; }
+    if (!window.PaystackPop) { onFail(); return; }
 
-    window.Korapay.initialize({
-      key: KORAPAY_PUBLIC_KEY,
-      reference: result.reference,
-      amount: result.amount,
+    const handler = window.PaystackPop.setup({
+      key: PAYSTACK_PUBLIC_KEY,
+      email: result.email,
+      amount: result.amount, // kobo
       currency: result.currency,
-      customer: result.customer,
-      narration: `Payment for ${group.items.length} item(s) from ${group.sellerName}`,
+      ref: result.reference,
+      metadata: {
+        custom_fields: [
+          { display_name: 'Seller', variable_name: 'seller', value: group.sellerName },
+          { display_name: 'Phone', variable_name: 'phone', value: details.phone },
+          { display_name: 'Address', variable_name: 'address', value: details.address },
+        ],
+      },
       onClose: () => { onFail(); },
-      onSuccess: async (data: { reference: string }) => {
-        const v = await verifyPayment(data.reference);
+      callback: async (response: { reference: string }) => {
+        const v = await verifyPayment(response.reference);
         if (v?.status === 'success') onDone();
         else onFail();
       },
-      onFailed: () => { onFail(); },
     });
+
+    handler.openIframe();
   };
 
   const handleBuyerFormSubmit = async (details: { name: string; email: string; phone: string; address: string }) => {
@@ -267,13 +271,8 @@ export const CartPage: React.FC<CartPageProps> = ({
     processGroup(
       group,
       details,
-      () => {
-        setCompletedCount(c => c + 1);
-        runNextGroup(idx + 1, details);
-      },
-      () => {
-        setCheckoutStep('error');
-      },
+      () => { setCompletedCount(c => c + 1); runNextGroup(idx + 1, details); },
+      () => { setCheckoutStep('error'); },
     );
   };
 
@@ -293,7 +292,6 @@ export const CartPage: React.FC<CartPageProps> = ({
       <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-4">
         <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md border border-gray-100 dark:border-gray-800 overflow-hidden">
 
-          {/* Header */}
           <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100 dark:border-gray-800">
             <div>
               <h2 className="text-base font-bold text-gray-900 dark:text-white">
@@ -320,7 +318,6 @@ export const CartPage: React.FC<CartPageProps> = ({
 
           <div className="px-5 py-5 max-h-[70vh] overflow-y-auto">
 
-            {/* Order summary strip */}
             {checkoutStep === 'form' && (
               <div className="mb-4 bg-orange-50 dark:bg-orange-900/10 rounded-xl p-3 space-y-1.5">
                 {sellerGroups.map(g => (
@@ -346,15 +343,12 @@ export const CartPage: React.FC<CartPageProps> = ({
               </div>
             )}
 
-            {/* Form */}
             {checkoutStep === 'form' && currentUser && (
               <BuyerForm currentUser={currentUser} onSubmit={handleBuyerFormSubmit} isLoading={false} />
             )}
 
-            {/* Processing */}
             {checkoutStep === 'processing' && (
               <div className="flex flex-col items-center py-8 gap-4">
-                {/* Progress dots */}
                 {pendingGroups.length > 1 && (
                   <div className="flex gap-2 mb-2">
                     {pendingGroups.map((g, i) => (
@@ -379,7 +373,7 @@ export const CartPage: React.FC<CartPageProps> = ({
                       ? `Opening payment ${currentGroupIdx + 1} of ${pendingGroups.length}…`
                       : 'Opening payment window…'}
                   </p>
-                  <p className="text-sm text-gray-400 mt-1">Complete your payment in the KoraPay window</p>
+                  <p className="text-sm text-gray-400 mt-1">Complete your payment in the Paystack window</p>
                   {pendingGroups.length > 1 && pendingGroups[currentGroupIdx] && (
                     <p className="text-xs text-orange-500 mt-1 font-medium">
                       Paying: {pendingGroups[currentGroupIdx].sellerName} · ₦{pendingGroups[currentGroupIdx].total.toLocaleString()}
@@ -389,7 +383,6 @@ export const CartPage: React.FC<CartPageProps> = ({
               </div>
             )}
 
-            {/* Done */}
             {checkoutStep === 'done' && (
               <div className="flex flex-col items-center py-8 gap-4">
                 <div className="w-16 h-16 rounded-2xl bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
@@ -410,7 +403,6 @@ export const CartPage: React.FC<CartPageProps> = ({
               </div>
             )}
 
-            {/* Error */}
             {checkoutStep === 'error' && (
               <div className="flex flex-col items-center py-8 gap-4">
                 <div className="w-16 h-16 rounded-2xl bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
@@ -432,10 +424,7 @@ export const CartPage: React.FC<CartPageProps> = ({
                     Cancel
                   </button>
                   <button onClick={() => {
-                    if (buyerDetails) {
-                      setCheckoutStep('processing');
-                      runNextGroup(currentGroupIdx, buyerDetails);
-                    }
+                    if (buyerDetails) { setCheckoutStep('processing'); runNextGroup(currentGroupIdx, buyerDetails); }
                   }}
                     className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition-colors">
                     Retry
@@ -493,11 +482,9 @@ export const CartPage: React.FC<CartPageProps> = ({
             </div>
           ) : (
             <>
-              {/* Items grouped by seller */}
               <div className="space-y-4 mb-6">
                 {sellerGroups.map(group => (
                   <div key={group.sellerId} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
-                    {/* Seller header */}
                     <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-100 dark:border-gray-800">
                       <div className="flex items-center gap-2">
                         <svg className="w-3.5 h-3.5 text-orange-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -509,7 +496,6 @@ export const CartPage: React.FC<CartPageProps> = ({
                       <span className="text-xs font-bold text-orange-500">₦{group.total.toLocaleString()}</span>
                     </div>
 
-                    {/* Items */}
                     <div className="divide-y divide-gray-50 dark:divide-gray-800">
                       {group.items.map(({ product, quantity }) => (
                         <div key={product.id} className="p-4">
@@ -556,7 +542,6 @@ export const CartPage: React.FC<CartPageProps> = ({
               {/* Summary + Pay All */}
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
                 <h2 className="text-base font-bold text-gray-800 dark:text-gray-200 mb-4">Order Summary</h2>
-
                 <div className="space-y-2 mb-4">
                   {sellerGroups.map(g => (
                     <div key={g.sellerId} className="flex justify-between text-sm">
@@ -565,17 +550,13 @@ export const CartPage: React.FC<CartPageProps> = ({
                     </div>
                   ))}
                 </div>
-
                 <div className="border-t border-gray-100 dark:border-gray-800 pt-4 flex items-center justify-between mb-5">
                   <span className="font-bold text-gray-900 dark:text-white text-base">Total</span>
                   <span className="font-bold text-orange-500 text-xl">₦{total.toLocaleString()}</span>
                 </div>
 
-                {/* PAY ALL button */}
-                <button
-                  onClick={handlePayAll}
-                  className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-bold py-3.5 rounded-xl transition-colors shadow-md shadow-green-200 dark:shadow-green-900/30 text-base"
-                >
+                <button onClick={handlePayAll}
+                  className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-bold py-3.5 rounded-xl transition-colors shadow-md shadow-green-200 dark:shadow-green-900/30 text-base">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
                   </svg>
@@ -589,12 +570,12 @@ export const CartPage: React.FC<CartPageProps> = ({
 
                 {sellerGroups.length > 1 && (
                   <p className="text-xs text-gray-400 text-center mt-2">
-                    Items from {sellerGroups.length} sellers — you'll complete one payment per seller
+                    Items from {sellerGroups.length} sellers — one payment per seller
                   </p>
                 )}
                 {sellerGroups.length === 1 && (
                   <p className="text-xs text-gray-400 text-center mt-2">
-                    Secured by KoraPay · Cards, Bank Transfer & More
+                    Secured by Paystack · Cards, Bank Transfer, USSD & More
                   </p>
                 )}
               </div>
@@ -631,7 +612,6 @@ export const CartPage: React.FC<CartPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Status timeline */}
                   <div className="flex items-center gap-1 mt-3">
                     {['success', 'shipped', 'delivered'].map((s, i) => {
                       const statuses = ['success', 'shipped', 'delivered'];
@@ -679,7 +659,6 @@ export const CartPage: React.FC<CartPageProps> = ({
         </>
       )}
 
-      {/* Checkout overlay */}
       {renderCheckoutOverlay()}
     </div>
   );
