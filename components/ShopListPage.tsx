@@ -99,9 +99,9 @@ export const ShopListPage: React.FC<ShopListPageProps> = ({ category, products, 
                       }
                       <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                      <div className="absolute bottom-2 right-2">
-  <span className="bg-orange-500/90 backdrop-blur-sm text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-md shadow-sm">
-    {stats.count}
-  </span>
+  <span className="bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded">
+  {stats.count}
+</span>
 </div>
                     </div>
                     <div className="p-4">
