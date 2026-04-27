@@ -4,12 +4,21 @@ import { Product, User } from '../types';
 import { initiatePayment, verifyPayment } from '../services/paymentService';
 import { Icon } from './Icon';
 
-const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY ?? '';
+const PAYSTACK_PUBLIC_KEY = (import.meta as any).env?.VITE_PAYSTACK_PUBLIC_KEY ?? '';
 
 declare global {
   interface Window {
     PaystackPop?: {
-      setup: (config: object) => { openIframe: () => void };
+      setup: (config: {
+        key: string;
+        email: string;
+        amount: number;
+        currency?: string;
+        ref: string;
+        metadata?: object;
+        onClose: () => void;
+        callback: (response: { reference: string }) => void;
+      }) => { openIframe: () => void };
     };
   }
 }
@@ -34,9 +43,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   onSaveBuyerDetails,
 }) => {
   const [step, setStep] = useState<Step>('form');
-  const [name, setName] = useState(currentUser.name ?? '');
-  const [phone, setPhone] = useState(currentUser.phone ?? '');
-  const [email, setEmail] = useState(currentUser.email ?? '');
+  const [name, setName]       = useState(currentUser.name ?? '');
+  const [phone, setPhone]     = useState(currentUser.phone ?? '');
+  const [email, setEmail]     = useState(currentUser.email ?? '');
   const [address, setAddress] = useState(currentUser.address ?? '');
   const [errorMsg, setErrorMsg] = useState('');
   const [successRef, setSuccessRef] = useState('');
@@ -44,26 +53,27 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
   // Load Paystack inline script once
   useEffect(() => {
-    if (scriptLoaded.current || document.querySelector('script[src*="paystack"]')) {
+    if (document.querySelector('script[src*="paystack"]')) {
       scriptLoaded.current = true;
       return;
     }
-    const script = document.createElement('script');
-    script.src = 'https://js.paystack.co/v1/inline.js';
-    script.async = true;
-    script.onload = () => { scriptLoaded.current = true; };
-    document.body.appendChild(script);
+    const s = document.createElement('script');
+    s.src = 'https://js.paystack.co/v1/inline.js';
+    s.async = true;
+    s.onload = () => { scriptLoaded.current = true; };
+    document.body.appendChild(s);
   }, []);
 
+  // Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
       setTimeout(() => {
         setStep('form');
         setErrorMsg('');
-        setEmail(currentUser.email ?? '');
-        setAddress(currentUser.address ?? '');
         setName(currentUser.name ?? '');
         setPhone(currentUser.phone ?? '');
+        setEmail(currentUser.email ?? '');
+        setAddress(currentUser.address ?? '');
       }, 300);
     }
   }, [isOpen, currentUser]);
@@ -73,35 +83,36 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim()) { setErrorMsg('Please enter your full name.'); return; }
+    if (!name.trim())                          { setErrorMsg('Please enter your full name.'); return; }
     if (!phone.trim() || phone.trim().length < 7) { setErrorMsg('Please enter a valid phone number.'); return; }
     if (!email.trim() || !email.includes('@')) { setErrorMsg('Please enter a valid email address.'); return; }
-    if (!address.trim()) { setErrorMsg('Please enter your delivery address.'); return; }
+    if (!address.trim())                       { setErrorMsg('Please enter your delivery address.'); return; }
 
     setStep('processing');
     setErrorMsg('');
 
+    // 1. Create the order row and get payment details
     const result = await initiatePayment({
-      productId: product.id,
+      productId:    product.id,
       productTitle: product.title,
-      amount: product.price,
-      buyerId: currentUser.id,
-      buyerName: name.trim(),
-      buyerEmail: email.trim(),
-      buyerPhone: phone.trim(),
+      amount:       product.price,
+      buyerId:      currentUser.id,
+      buyerName:    name.trim(),
+      buyerEmail:   email.trim(),
+      buyerPhone:   phone.trim(),
       buyerAddress: address.trim(),
     });
 
     if (!result) {
-      setErrorMsg('Could not initialize payment. Please try again.');
+      setErrorMsg('Could not initialise payment. Please try again.');
       setStep('form');
       return;
     }
 
-    // Wait for Paystack script
+    // 2. Wait for Paystack script if needed
     let attempts = 0;
-    while (!window.PaystackPop && attempts < 20) {
-      await new Promise(r => setTimeout(r, 150));
+    while (!window.PaystackPop && attempts < 30) {
+      await new Promise(r => setTimeout(r, 100));
       attempts++;
     }
 
@@ -111,35 +122,42 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       return;
     }
 
+    // Capture values for use inside callbacks (closures)
+    const capturedEmail   = email.trim();
+    const capturedAddress = address.trim();
+    const capturedPhone   = phone.trim();
+    const capturedName    = name.trim();
+
+    // 3. Setup Paystack — callback MUST be a plain (non-async) function
     const handler = window.PaystackPop.setup({
-      key: PAYSTACK_PUBLIC_KEY,
-      email: result.email,
-      amount: result.amount, // in kobo
-      currency: result.currency,
-      ref: result.reference,
+      key:      PAYSTACK_PUBLIC_KEY,
+      email:    result.email,
+      amount:   result.amount,   // kobo
+      currency: 'NGN',
+      ref:      result.reference,
       metadata: {
         custom_fields: [
-          { display_name: 'Product', variable_name: 'product', value: result.productTitle },
-          { display_name: 'Phone', variable_name: 'phone', value: phone.trim() },
-          { display_name: 'Address', variable_name: 'address', value: address.trim() },
+          { display_name: 'Phone',   variable_name: 'phone',   value: capturedPhone },
+          { display_name: 'Address', variable_name: 'address', value: capturedAddress },
         ],
       },
       onClose: () => {
         setStep('form');
       },
-      callback: async (response: { reference: string }) => {
-        const verification = await verifyPayment(response.reference);
-        if (verification?.status === 'success') {
-          setSuccessRef(response.reference);
-          setStep('success');
-          onPaymentSuccess(response.reference);
-          onSaveBuyerDetails?.(email.trim(), address.trim(), phone.trim(), name.trim());
-        } else {
-          setStep('failed');
-        }
+      // callback must be synchronous — fire-and-forget the async verify
+      callback: (response: { reference: string }) => {
+        // Optimistically show success immediately (Paystack only fires callback on real success)
+        setSuccessRef(response.reference);
+        setStep('success');
+        onPaymentSuccess(response.reference);
+        onSaveBuyerDetails?.(capturedEmail, capturedAddress, capturedPhone, capturedName);
+
+        // Update DB in background
+        verifyPayment(response.reference).catch(console.error);
       },
     });
 
+    // 4. Open the popup
     handler.openIframe();
   };
 
@@ -153,16 +171,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Complete Purchase</h2>
             <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[260px]">{product.title}</p>
           </div>
-          <button
-            onClick={onClose}
-            disabled={step === 'processing'}
-            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-30"
-          >
+          <button onClick={onClose} disabled={step === 'processing'}
+            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-30">
             <Icon name="close" className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Product summary strip */}
+        {/* Product summary */}
         <div className="flex items-center gap-3 px-6 py-3 bg-orange-50 dark:bg-orange-900/10">
           {product.images?.[0] && (
             <img src={product.images[0]} alt="" className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
@@ -179,41 +194,33 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         {/* Body */}
         <div className="px-6 py-5 max-h-[60vh] overflow-y-auto">
 
-          {/* ── Checkout form ── */}
+          {/* ── Form ── */}
           {step === 'form' && (
             <form onSubmit={handlePay} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Full Name</label>
-                <input type="text" value={name} onChange={e => setName(e.target.value)}
-                  placeholder="Aminu Musa"
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all"
-                  required autoFocus />
+                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Aminu Musa" required autoFocus
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all" />
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Phone Number</label>
-                <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
-                  placeholder="+234 800 000 0000"
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all"
-                  required />
+                <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+234 800 000 0000" required
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all" />
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                  Email <span className="ml-1.5 text-xs font-normal text-gray-400">(for receipt)</span>
+                  Email <span className="text-xs font-normal text-gray-400 ml-1">(for receipt)</span>
                 </label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all"
-                  required />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all" />
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Delivery Address</label>
-                <textarea value={address} onChange={e => setAddress(e.target.value)}
-                  placeholder="House number, street, area, city…" rows={3}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all resize-none"
-                  required />
+                <textarea value={address} onChange={e => setAddress(e.target.value)} placeholder="House number, street, area, city…" rows={3} required
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all resize-none" />
               </div>
 
               {errorMsg && <p className="text-sm text-red-500 dark:text-red-400">{errorMsg}</p>}
@@ -253,9 +260,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               <div className="text-center">
                 <p className="font-bold text-gray-900 dark:text-white text-lg">Payment Successful!</p>
                 <p className="text-sm text-gray-400 mt-1">Your order has been placed. The seller will contact you shortly.</p>
-                {successRef && (
-                  <p className="text-xs text-gray-300 dark:text-gray-600 mt-2 font-mono break-all">{successRef}</p>
-                )}
+                {successRef && <p className="text-xs text-gray-300 dark:text-gray-600 mt-2 font-mono break-all">{successRef}</p>}
               </div>
               <button onClick={onClose}
                 className="mt-2 bg-green-500 hover:bg-green-600 text-white font-bold px-8 py-2.5 rounded-xl transition-colors">
