@@ -143,7 +143,7 @@ export const PinModal: React.FC<PinModalProps> = ({
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 60,
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.50)', zIndex: 60,
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
     }}>
       <div style={{
