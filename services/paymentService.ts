@@ -4,15 +4,15 @@ import { supabase } from './supabase_client';
 export interface InitiatePaymentParams {
   productId: string;
   productTitle: string;
-  amount: number;
+  amount: number; // in NGN
   buyerId: string;
   buyerName: string;
   buyerEmail: string;
   buyerPhone: string;
   buyerAddress: string;
+  sellerId?: string;
 }
 
-// NEW: multi-item version
 export interface InitiateCartPaymentParams {
   sellerId: string;
   items: { productId: string; productTitle: string; quantity: number; unitPrice: number }[];
@@ -27,67 +27,123 @@ export interface InitiateCartPaymentParams {
 export interface PaymentInitResult {
   reference: string;
   orderId: string;
-  amount: number;
+  amount: number;       // in kobo (× 100)
   currency: string;
-  customer: { name: string; email: string };
+  email: string;
   productTitle: string;
 }
 
-// Single product payment (used from ProductDetailPage)
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Generate a unique payment reference */
+const makeReference = () =>
+  `KS-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
+/** Create an order row and return the Paystack-ready payload */
+const createOrderAndBuildPayload = async (
+  params: {
+    productId: string;
+    productTitle: string;
+    amount: number;
+    buyerId: string;
+    buyerName: string;
+    buyerEmail: string;
+    buyerPhone: string;
+    buyerAddress: string;
+    sellerId?: string;
+  }
+): Promise<PaymentInitResult | null> => {
+  try {
+    const reference = makeReference();
+
+    const { data, error } = await supabase.from('orders').insert({
+      buyer_id: params.buyerId,
+      seller_id: params.sellerId ?? null,
+      product_id: params.productId,
+      product_title: params.productTitle,
+      amount: params.amount,
+      currency: 'NGN',
+      status: 'pending',
+      korapay_reference: reference, // reusing column name — just stores payment ref
+      buyer_email: params.buyerEmail,
+      buyer_name: params.buyerName,
+      buyer_phone: params.buyerPhone,
+      buyer_address: params.buyerAddress,
+    }).select().single();
+
+    if (error) throw error;
+
+    return {
+      reference,
+      orderId: data.id,
+      amount: params.amount * 100, // Paystack expects kobo
+      currency: 'NGN',
+      email: params.buyerEmail,
+      productTitle: params.productTitle,
+    };
+  } catch (e) {
+    console.error('createOrderAndBuildPayload:', e);
+    return null;
+  }
+};
+
+// ── Single product payment ────────────────────────────────────────────────────
 export const initiatePayment = async (
   params: InitiatePaymentParams
 ): Promise<PaymentInitResult | null> => {
-  try {
-    const { data, error } = await supabase.functions.invoke('korapay-charge', {
-      body: params,
-    });
-    if (error) { console.error('initiatePayment error:', error); return null; }
-    return data as PaymentInitResult;
-  } catch (err) { console.error('initiatePayment unexpected error:', err); return null; }
+  // Look up sellerId from the product if not provided
+  let sellerId = params.sellerId;
+  if (!sellerId) {
+    const { data } = await supabase
+      .from('products')
+      .select('seller_id')
+      .eq('id', params.productId)
+      .single();
+    sellerId = data?.seller_id ?? undefined;
+  }
+
+  return createOrderAndBuildPayload({ ...params, sellerId });
 };
 
-// Multi-item cart payment grouped by seller
+// ── Cart payment (grouped by seller) ─────────────────────────────────────────
 export const initiateCartPayment = async (
   params: InitiateCartPaymentParams
 ): Promise<PaymentInitResult | null> => {
-  try {
-    // Build a combined title like "3 items from seller"
-    const productTitle = params.items.length === 1
+  const productTitle =
+    params.items.length === 1
       ? `${params.items[0].productTitle}${params.items[0].quantity > 1 ? ` ×${params.items[0].quantity}` : ''}`
       : `${params.items.length} items (cart order)`;
 
-    // Re-use the same edge function — pass the first productId as the primary
-    // and include itemsJson for the order record
-    const { data, error } = await supabase.functions.invoke('korapay-charge', {
-      body: {
-        productId: params.items[0].productId,
-        productTitle,
-        amount: params.totalAmount,
-        buyerId: params.buyerId,
-        buyerName: params.buyerName,
-        buyerEmail: params.buyerEmail,
-        buyerPhone: params.buyerPhone,
-        buyerAddress: params.buyerAddress,
-        // extra metadata stored in the order
-        sellerId: params.sellerId,
-        cartItems: params.items,
-      },
-    });
-    if (error) { console.error('initiateCartPayment error:', error); return null; }
-    return data as PaymentInitResult;
-  } catch (err) { console.error('initiateCartPayment unexpected error:', err); return null; }
+  return createOrderAndBuildPayload({
+    productId: params.items[0].productId,
+    productTitle,
+    amount: params.totalAmount,
+    buyerId: params.buyerId,
+    buyerName: params.buyerName,
+    buyerEmail: params.buyerEmail,
+    buyerPhone: params.buyerPhone,
+    buyerAddress: params.buyerAddress,
+    sellerId: params.sellerId,
+  });
 };
 
+// ── Verify payment (mark order as success) ───────────────────────────────────
 export const verifyPayment = async (
   reference: string
-): Promise<{ status: string; transactionRef?: string } | null> => {
+): Promise<{ status: string } | null> => {
   try {
-    const { data, error } = await supabase.functions.invoke('korapay-verify', {
-      body: { reference },
-    });
-    if (error) { console.error('verifyPayment error:', error); return null; }
-    return data;
-  } catch (err) { console.error('verifyPayment unexpected error:', err); return null; }
+    // Mark the order as success by reference
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: 'success' })
+      .eq('korapay_reference', reference);
+
+    if (error) throw error;
+    return { status: 'success' };
+  } catch (e) {
+    console.error('verifyPayment:', e);
+    return null;
+  }
 };
 
 export const getBuyerOrders = async (buyerId: string) => {
