@@ -30,6 +30,7 @@ import { CartItem } from './types';
 import { PinModal } from './components/PinModal';
 import { changeUserPassword } from './services/dbService';
 import { setUserPassword } from './services/dbService'; // add this line
+import { signInWithEmail, signUpWithEmail, signOut, getSessionUser } from './services/dbService';
 
 // ── Admin usernames – add yours here ──────────────────────────────────────────
 const ADMIN_USERNAMES = ['admin', 'superadmin007gunfu', 'admin1', 'superadmin00700'];
@@ -227,24 +228,10 @@ useEffect(() => {
 
   // --- AUTH ---
  const handleLogin = async (data: AuthData) => {
-  const user = users.find(u => u.username === data.username);
-  if (!user) { showToast('Username not found. Try registering.'); return; }
-  
-  // Verify password if the user has one set
-  if (data.password) {
-    const { data: dbUser } = await supabase
-      .from('users')
-      .select('password')
-      .eq('id', user.id)
-      .single();
-    
-    if (dbUser?.password && dbUser.password !== data.password) {
-      showToast('Incorrect password. Please try again.');
-      return;
-    }
-  }
-  
-  const withAdmin = { ...user, isAdmin: ADMIN_USERNAMES.includes(user.username) };
+  const result = await signInWithEmail(data.username, data.password ?? '');
+  if (!result) { showToast('Invalid email or password.'); return; }
+
+  const withAdmin = { ...result, isAdmin: ADMIN_USERNAMES.includes(result.username) };
   if (withAdmin.pin) {
     setCurrentUser(withAdmin);
     setPinUnlocked(false);
@@ -252,7 +239,7 @@ useEffect(() => {
   } else {
     setCurrentUser(withAdmin);
     setPinUnlocked(true);
-    showToast(`Welcome back, ${user.name}!`);
+    showToast(`Welcome back, ${result.name}!`);
   }
   setAuthModal({ isOpen: false, view: 'login' });
 };
@@ -292,35 +279,69 @@ const handleForgotPin = async (username: string, newPin: string): Promise<boolea
 };
 
 const handleRegister = async (data: AuthData) => {
-  if (!isSupabaseConfigured) { showToast('Supabase is not configured.'); return; }
+  if (!data.name || !data.username) { showToast('Please fill all fields.'); return; }
   if (users.some(u => u.username === data.username)) { showToast('Username already taken.'); return; }
-  const newUser = await db.createUser({
-    name: data.name!,
-    username: data.username!,
-    profilePicture: data.profilePicture || generateAvatar(data.name!),
-  });
-  if (newUser) {
-    // ✅ Save the password after user creation
-    if (data.password) {
-      await setUserPassword(newUser.id, data.password);
-    }
-    
-    const withAdmin = { ...newUser, isAdmin: ADMIN_USERNAMES.includes(newUser.username) };
+
+  const result = await signUpWithEmail(
+    data.username, // username is actually email in your AuthModal
+    data.password ?? '',
+    data.name,
+    data.username.split('@')[0], // derive username from email
+    data.profilePicture
+  );
+
+  if (result) {
+    const withAdmin = { ...result, isAdmin: ADMIN_USERNAMES.includes(result.username) };
     setUsers(prev => [withAdmin, ...prev]);
     setCurrentUser(withAdmin);
     setAuthModal({ isOpen: false, view: 'login' });
-    showToast(`Welcome, ${newUser.name}!`);
+    showToast(`Welcome, ${result.name}! Check your email to confirm your account.`);
   } else {
-    showToast('Error creating account.');
+    showToast('Error creating account. Email may already be in use.');
   }
 };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    window.history.pushState({ page: 'home' }, '', '#home');
-    setActivePage('home'); setSelectedProduct(null); setSelectedCategory(null); setSelectedShop(null);
-    showToast('You have been logged out.');
+  const handleLogout = async () => {
+  await signOut();
+  setCurrentUser(null);
+  window.history.pushState({ page: 'home' }, '', '#home');
+  setActivePage('home');
+  setSelectedProduct(null);
+  setSelectedCategory(null);
+  setSelectedShop(null);
+  showToast('You have been logged out.');
+};
+
+// Add session restore in the initial useEffect
+useEffect(() => {
+  const load = async () => {
+    setIsLoading(true);
+    try {
+      const [productsData, usersData, threadsData, ordersData] = await Promise.all([
+        db.getProducts(), db.getUsers(), db.getThreads(), db.getOrders()
+      ]);
+      setProducts(productsData);
+      setUsers(usersData);
+      setThreads(threadsData);
+      setOrders(ordersData);
+
+      // Restore session from Supabase Auth
+      const sessionUser = await db.getSessionUser();
+      if (sessionUser) {
+        const withAdmin = { ...sessionUser, isAdmin: ADMIN_USERNAMES.includes(sessionUser.username) };
+        setCurrentUser(withAdmin);
+        const savedIds = await db.getSavedProductIds(sessionUser.id);
+        setSavedProductIds(savedIds);
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error loading data. Please refresh.');
+    } finally {
+      setIsLoading(false);
+    }
   };
+  load();
+}, []);
 
   const handleUpdateProfilePicture = async (url: string) => {
     if (!currentUser) return;
