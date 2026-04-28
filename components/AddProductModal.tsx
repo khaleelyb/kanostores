@@ -271,6 +271,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
   const [images, setImages] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showChips, setShowChips] = useState(true);
+  const [stock, setStock] = useState<string>('');
+const [deliveryAvailable, setDeliveryAvailable] = useState(false);
+const [deliveryPrice, setDeliveryPrice] = useState('');
+const [deliveryAreas, setDeliveryAreas] = useState('');
 
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
@@ -313,6 +317,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
         setPrice(String(productToEdit.price));
         setDescription(productToEdit.description);
         setImages(productToEdit.images || []);
+        setStock(productToEdit.stock != null ? String(productToEdit.stock) : '');
+setDeliveryAvailable(productToEdit.deliveryAvailable ?? false);
+setDeliveryPrice(productToEdit.deliveryPrice ? String(productToEdit.deliveryPrice) : '');
+setDeliveryAreas(productToEdit.deliveryAreas ?? '');
       } else {
         setMode('select-method');
         resetForm();
@@ -331,6 +339,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     setImages([]);
     setIsProcessing(false);
     setShowChips(true);
+    setStock('');
+setDeliveryAvailable(false);
+setDeliveryPrice('');
+setDeliveryAreas('');
   };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -381,10 +393,22 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     }
     localStorage.setItem('kano-last-category', category);
     if (isEditMode) {
-      onUpdateProduct({ ...productToEdit, title, category, price: Number(price), description, images });
-    } else {
-      onAddProduct({ title, category, price: Number(price), description, images });
-    }
+  onUpdateProduct({ 
+    ...productToEdit, title, category, price: Number(price), description, images,
+    stock: stock !== '' ? Number(stock) : null,
+    deliveryAvailable,
+    deliveryPrice: Number(deliveryPrice) || 0,
+    deliveryAreas,
+  });
+} else {
+  onAddProduct({ 
+    title, category, price: Number(price), description, images,
+    stock: stock !== '' ? Number(stock) : null,
+    deliveryAvailable,
+    deliveryPrice: Number(deliveryPrice) || 0,
+    deliveryAreas,
+  });
+}
     handleClose();
   };
 
@@ -547,6 +571,75 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 </div>
               </div>
 
+              {/* Stock & Delivery */}
+<div className="bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-4">
+  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Stock & Delivery</p>
+
+  {/* Stock */}
+  <div>
+    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+      Stock quantity <span className="text-xs font-normal text-gray-400">(optional — leave blank for unlimited)</span>
+    </label>
+    <input
+      type="number"
+      min="0"
+      value={stock}
+      onChange={e => setStock(e.target.value)}
+      placeholder="e.g. 10"
+      className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+    />
+  </div>
+
+  {/* Delivery toggle */}
+  <div className="flex items-center justify-between">
+    <div>
+      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Delivery available</p>
+      <p className="text-xs text-gray-400">Can you deliver this item to buyers?</p>
+    </div>
+    <button
+      type="button"
+      onClick={() => setDeliveryAvailable(v => !v)}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+        deliveryAvailable ? 'bg-orange-500' : 'bg-gray-300 dark:bg-gray-600'
+      }`}
+    >
+      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+        deliveryAvailable ? 'translate-x-6' : 'translate-x-1'
+      }`} />
+    </button>
+  </div>
+
+  {/* Delivery details — only show if delivery is on */}
+  {deliveryAvailable && (
+    <>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Delivery fee (₦) <span className="text-xs font-normal text-gray-400">(enter 0 for free)</span>
+        </label>
+        <input
+          type="number"
+          min="0"
+          value={deliveryPrice}
+          onChange={e => setDeliveryPrice(e.target.value)}
+          placeholder="e.g. 500"
+          className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Delivery areas
+        </label>
+        <input
+          type="text"
+          value={deliveryAreas}
+          onChange={e => setDeliveryAreas(e.target.value)}
+          placeholder="e.g. badawa area,farm center area ,kofar nassarawa"
+          className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+        />
+      </div>
+    </>
+  )}
+</div>
               {/* ── Quick-Tap Spec Chips ── */}
               {hasChips && (
                 <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-800/40 rounded-xl p-3">
