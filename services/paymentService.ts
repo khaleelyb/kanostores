@@ -155,3 +155,41 @@ export const getBuyerOrders = async (buyerId: string) => {
   if (error) { console.error('getBuyerOrders error:', error); return []; }
   return data ?? [];
 };
+export const verifyPayment = async (reference: string): Promise<{ status: string } | null> => {
+  try {
+    // Get order to find product
+    const { data: order } = await supabase
+      .from('orders')
+      .select('product_id')
+      .eq('korapay_reference', reference)
+      .single();
+
+    // Mark paid
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: 'success' })
+      .eq('korapay_reference', reference);
+    if (error) throw error;
+
+    // Decrement stock if product has stock tracking
+    if (order?.product_id) {
+      const { data: product } = await supabase
+        .from('products')
+        .select('stock')
+        .eq('id', order.product_id)
+        .single();
+
+      if (product?.stock != null && product.stock > 0) {
+        await supabase
+          .from('products')
+          .update({ stock: product.stock - 1 })
+          .eq('id', order.product_id);
+      }
+    }
+
+    return { status: 'success' };
+  } catch (e) {
+    console.error('verifyPayment:', e);
+    return null;
+  }
+};
