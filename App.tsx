@@ -470,9 +470,9 @@ const handleAdminEditProduct = (product: Product) => {
   };
   // 2. Add handler function (inside the App component, near other handlers):
 const handleChangePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
-  if (!currentUser) return false;
-  const ok = await changeUserPassword(currentUser.id, currentPassword, newPassword);
+  const ok = await db.changeUserPassword(currentPassword, newPassword);
   if (ok) showToast('Password updated successfully!');
+  else showToast('Current password is incorrect.');
   return ok;
 };
 
