@@ -130,9 +130,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, 
                         <div>
                             <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Password
-                                {view === 'register' && (
-                                    <span className="ml-1.5 text-xs font-normal text-gray-400">(used for PIN recovery)</span>
-                                )}
                             </label>
                             <div className="relative">
                                 <input
