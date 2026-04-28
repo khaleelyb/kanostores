@@ -156,6 +156,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     <h1 className="text-2xl font-bold text-gray-900 dark:text-white leading-snug">{product.title}</h1>
     <p className="text-3xl font-bold text-orange-500 mt-3">₦{product.price.toLocaleString()}</p>
     
+    
     {/* Metadata Section: Location, Date, and ID */}
     <div className="mt-3">
       <div className="flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500">
@@ -195,6 +196,41 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   </button>
                 )}
 
+                {/* Stock badge */}
+{product.stock != null && (
+  <div className="mt-2">
+    {product.stock === 0 ? (
+      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 dark:bg-red-900/20 px-2.5 py-1 rounded-full">
+        <span className="w-1.5 h-1.5 bg-red-500 rounded-full"/> Out of stock
+      </span>
+    ) : product.stock <= 5 ? (
+      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1 rounded-full">
+        <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"/> Only {product.stock} left
+      </span>
+    ) : (
+      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-green-600 bg-green-50 dark:bg-green-900/20 px-2.5 py-1 rounded-full">
+        <span className="w-1.5 h-1.5 bg-green-500 rounded-full"/> {product.stock} in stock
+      </span>
+    )}
+  </div>
+)}
+
+{/* Delivery info */}
+{product.deliveryAvailable && (
+  <div className="mt-3 flex items-start gap-2 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/40 rounded-xl px-3 py-2.5">
+    <svg className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+    </svg>
+    <div>
+      <p className="text-xs font-bold text-blue-700 dark:text-blue-400">
+        Delivery available · {product.deliveryPrice === 0 ? 'Free' : `₦${product.deliveryPrice?.toLocaleString()}`}
+      </p>
+      {product.deliveryAreas && (
+        <p className="text-xs text-blue-500 dark:text-blue-400 mt-0.5">{product.deliveryAreas}</p>
+      )}
+    </div>
+  </div>
+)}
                 {/* Message on App */}
                 <button
                   onClick={() => onMessageSeller(product)}
