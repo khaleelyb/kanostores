@@ -32,9 +32,21 @@ interface AdminDashboardProps {
   onUpdateOrderStatus: (orderId: string, status: Order['status']) => void;
   onBack: () => void;
 }
-
+// Add this at the top of AdminDashboard.tsx (outside the component)
+const ADMIN_USERNAMES = ['admin', 'superadmin007gunfu', 'admin1', 'superadmin00700'];
 type AdminTab = 'overview' | 'orders' | 'products' | 'users';
-
+// Add this inside AdminDashboard component, near other handlers
+const handleApproveSeller = async (user: User) => {
+  await onUpdateUser(user.id, { isApprovedSeller: !user.isApprovedSeller });
+  
+  if (!user.isApprovedSeller && user.phone) {
+    const phone = user.phone.replace(/^0/, '234').replace(/\D/g, '');
+    const msg = encodeURIComponent(
+      `Hello ${user.name}! 🎉\n\nYour Kano Stores seller account has been approved!\n\nYou can now log in and start posting your listings.\n\n- Kano Stores Team`
+    );
+    window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+  }
+};
 const VerifiedBadge = () => (
   <span title="Verified" className="inline-flex items-center justify-center">
     <svg className="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
@@ -147,6 +159,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const pendingShipment = useMemo(() => orders.filter(o => o.status === 'success'), [orders]);
 
+  // Make sure this useMemo uses the local constant, not the one from App.tsx
+const pendingSellerApprovals = useMemo(() => 
+  users.filter(u => !u.isApprovedSeller && !ADMIN_USERNAMES.includes(u.username)),
+[users]);
+  
   const totalRevenue = useMemo(() =>
     orders.filter(o => o.status === 'success' || o.status === 'shipped' || o.status === 'delivered')
       .reduce((s, o) => s + o.amount, 0), [orders]);
@@ -683,7 +700,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path fillRule="evenodd" d="M8.603 3.799A4.49 4.49 0 0 1 12 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 0 1 3.498 1.307 4.491 4.491 0 0 1 1.307 3.497A4.49 4.49 0 0 1 21.75 12a4.49 4.49 0 0 1-1.549 3.397 4.491 4.491 0 0 1-1.307 3.497 4.491 4.491 0 0 1-3.497 1.307A4.49 4.49 0 0 1 12 21.75a4.49 4.49 0 0 1-3.397-1.549 4.491 4.491 0 0 1-3.497-1.307 4.491 4.491 0 0 1-1.307-3.497A4.49 4.49 0 0 1 2.25 12a4.49 4.49 0 0 1 1.549-3.397 4.491 4.491 0 0 1 1.307-3.497 4.491 4.491 0 0 1 3.497-1.307Zm7.007 6.387a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clipRule="evenodd" /></svg>
                               {u.isVerified ? 'Verified' : 'Verify'}
                             </button>
-                            <button onClick={() => onUpdateUser(u.id, { isApprovedSeller: !u.isApprovedSeller })}
+                            <button onClick={() => handleApproveSeller(u)}
                               className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${u.isApprovedSeller ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-600 dark:text-green-400 hover:bg-green-100' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-green-300 hover:text-green-500'}`}>
                               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z" /></svg>
                               {u.isApprovedSeller ? 'Seller' : 'Approve'}
