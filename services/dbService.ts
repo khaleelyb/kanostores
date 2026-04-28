@@ -345,3 +345,77 @@ export const setUserPassword = async (userId: string, password: string): Promise
     return true;
   } catch (e) { console.error('setUserPassword:', e); return false; }
 };
+// ── SUPABASE AUTH ─────────────────────────────────────────────────────────────
+
+export const signUpWithEmail = async (
+  email: string,
+  password: string,
+  name: string,
+  username: string,
+  profilePicture?: string
+): Promise<User | null> => {
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name, username, profile_picture: profilePicture ?? '' }
+      }
+    });
+    if (error) throw error;
+    if (!data.user) return null;
+
+    // Wait for the DB trigger to create the users row
+    await new Promise(r => setTimeout(r, 800));
+
+    const { data: userData } = await supabase
+      .from('users')
+      .select('*')
+      .eq('auth_id', data.user.id)
+      .single();
+
+    return userData ? rowToUser(userData) : null;
+  } catch (e) { console.error('signUpWithEmail:', e); return null; }
+};
+
+export const signInWithEmail = async (
+  email: string,
+  password: string
+): Promise<User | null> => {
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) throw error;
+    if (!data.user) return null;
+
+    const { data: userData } = await supabase
+      .from('users')
+      .select('*')
+      .eq('auth_id', data.user.id)
+      .single();
+
+    return userData ? rowToUser(userData) : null;
+  } catch (e) { console.error('signInWithEmail:', e); return null; }
+};
+
+export const signOut = async (): Promise<void> => {
+  await supabase.auth.signOut();
+  clearCurrentUser();
+};
+
+export const getSessionUser = async (): Promise<User | null> => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return null;
+
+    const { data } = await supabase
+      .from('users')
+      .select('*')
+      .eq('auth_id', session.user.id)
+      .single();
+
+    return data ? rowToUser(data) : null;
+  } catch { return null; }
+};
