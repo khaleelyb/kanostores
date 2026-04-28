@@ -128,33 +128,6 @@ export const initiateCartPayment = async (
 };
 
 // ── Verify payment (mark order as success) ───────────────────────────────────
-export const verifyPayment = async (
-  reference: string
-): Promise<{ status: string } | null> => {
-  try {
-    // Mark the order as success by reference
-    const { error } = await supabase
-      .from('orders')
-      .update({ status: 'success' })
-      .eq('korapay_reference', reference);
-
-    if (error) throw error;
-    return { status: 'success' };
-  } catch (e) {
-    console.error('verifyPayment:', e);
-    return null;
-  }
-};
-
-export const getBuyerOrders = async (buyerId: string) => {
-  const { data, error } = await supabase
-    .from('orders')
-    .select('*')
-    .eq('buyer_id', buyerId)
-    .order('created_at', { ascending: false });
-  if (error) { console.error('getBuyerOrders error:', error); return []; }
-  return data ?? [];
-};
 export const verifyPayment = async (reference: string): Promise<{ status: string } | null> => {
   try {
     // Get order to find product
@@ -193,3 +166,5 @@ export const verifyPayment = async (reference: string): Promise<{ status: string
     return null;
   }
 };
+
+
