@@ -100,11 +100,15 @@ export const getProducts = async (): Promise<Product[]> => {
     try {
         const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
         if (error) throw error;
-        return (data || []).map(p => ({
-            id: p.id, title: p.title, price: p.price, category: p.category,
-            images: parseImages(p.image), location: p.location, date: p.date,
-            description: p.description, sellerId: p.seller_id,
-        }));
+       return (data || []).map(p => ({
+  id: p.id, title: p.title, price: p.price, category: p.category,
+  images: parseImages(p.image), location: p.location, date: p.date,
+  description: p.description, sellerId: p.seller_id,
+  stock: p.stock ?? null,
+  deliveryAvailable: p.delivery_available ?? false,
+  deliveryPrice: p.delivery_price ?? 0,
+  deliveryAreas: p.delivery_areas ?? '',
+}));
     } catch (e) { console.error('getProducts:', e); return []; }
 };
 
@@ -112,9 +116,15 @@ export const createProduct = async (product: Omit<Product, 'id'>): Promise<Produ
     try {
         const { data, error } = await supabase
             .from('products')
-            .insert({ title: product.title, price: product.price, category: product.category,
-                image: JSON.stringify(product.images), location: product.location,
-                date: product.date, description: product.description, seller_id: product.sellerId })
+            .insert({ 
+  title: product.title, price: product.price, category: product.category,
+  image: JSON.stringify(product.images), location: product.location,
+  date: product.date, description: product.description, seller_id: product.sellerId,
+  stock: product.stock ?? null,
+  delivery_available: product.deliveryAvailable ?? false,
+  delivery_price: product.deliveryPrice ?? 0,
+  delivery_areas: product.deliveryAreas ?? null,
+})
             .select().single();
         if (error) throw error;
         return { id: data.id, title: data.title, price: data.price, category: data.category,
@@ -135,6 +145,10 @@ export const updateProduct = async (productId: string, updates: Partial<Product>
         const { error } = await supabase.from('products').update(payload).eq('id', productId);
         if (error) throw error;
         return true;
+        if (updates.stock !== undefined)            payload.stock = updates.stock;
+if (updates.deliveryAvailable !== undefined) payload.delivery_available = updates.deliveryAvailable;
+if (updates.deliveryPrice !== undefined)    payload.delivery_price = updates.deliveryPrice;
+if (updates.deliveryAreas !== undefined)    payload.delivery_areas = updates.deliveryAreas;
     } catch (e) { console.error('updateProduct:', e); return false; }
 };
 
