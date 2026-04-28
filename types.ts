@@ -8,6 +8,10 @@ export interface Product {
   date: string;
   description: string;
   sellerId: string;
+  stock?: number | null;
+  deliveryAvailable?: boolean;
+  deliveryPrice?: number;
+  deliveryAreas?: string;
 }
 
 export interface User {
