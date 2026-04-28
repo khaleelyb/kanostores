@@ -80,18 +80,41 @@ const App: React.FC = () => {
       setUsers(usersData);
       setThreads(threadsData);
       setOrders(ordersData);
-      if (currentUser) {
-        const savedIds = await db.getSavedProductIds(currentUser.id);
-        setSavedProductIds(savedIds);
-        // ✅ Sync currentUser with fresh DB data (picks up isApprovedSeller etc.)
-        const freshUser = usersData.find(u => u.id === currentUser.id);
-        if (freshUser) {
-          setCurrentUser({ 
-            ...freshUser, 
-            isAdmin: ADMIN_USERNAMES.includes(freshUser.username) 
-          });
+
+      // Try Supabase Auth session first
+      try {
+        const sessionUser = await db.getSessionUser();
+        if (sessionUser) {
+          const withAdmin = { ...sessionUser, isAdmin: ADMIN_USERNAMES.includes(sessionUser.username) };
+          setCurrentUser(withAdmin);
+          const savedIds = await db.getSavedProductIds(sessionUser.id);
+          setSavedProductIds(savedIds);
+        } else {
+          // Fall back to localStorage (old users)
+          const localUser = db.getCurrentUser();
+          if (localUser) {
+            const freshUser = usersData.find(u => u.id === localUser.id);
+            if (freshUser) {
+              setCurrentUser({ ...freshUser, isAdmin: ADMIN_USERNAMES.includes(freshUser.username) });
+              const savedIds = await db.getSavedProductIds(freshUser.id);
+              setSavedProductIds(savedIds);
+            }
+          }
+        }
+      } catch (authErr) {
+        console.warn('Auth session error, falling back to localStorage:', authErr);
+        // Fall back to localStorage
+        const localUser = db.getCurrentUser();
+        if (localUser) {
+          const freshUser = usersData.find(u => u.id === localUser.id);
+          if (freshUser) {
+            setCurrentUser({ ...freshUser, isAdmin: ADMIN_USERNAMES.includes(freshUser.username) });
+            const savedIds = await db.getSavedProductIds(freshUser.id);
+            setSavedProductIds(savedIds);
+          }
         }
       }
+
     } catch (err) {
       console.error(err);
       showToast('Error loading data. Please refresh.');
@@ -228,18 +251,52 @@ useEffect(() => {
 
   // --- AUTH ---
  const handleLogin = async (data: AuthData) => {
-  const result = await signInWithEmail(data.username, data.password ?? '');
-  if (!result) { showToast('Invalid email or password.'); return; }
+  // Try Supabase Auth first (email login)
+  if (data.username.includes('@')) {
+    const result = await db.signInWithEmail(data.username, data.password ?? '');
+    if (!result) { showToast('Invalid email or password.'); return; }
 
-  const withAdmin = { ...result, isAdmin: ADMIN_USERNAMES.includes(result.username) };
-  if (withAdmin.pin) {
+    const withAdmin = { ...result, isAdmin: ADMIN_USERNAMES.includes(result.username) };
+    if (withAdmin.pin && withAdmin.isApprovedSeller) {
+      setCurrentUser(withAdmin);
+      setPinUnlocked(false);
+      setPinModal({ isOpen: true, mode: 'enter' });
+    } else {
+      setCurrentUser(withAdmin);
+      setPinUnlocked(true);
+      showToast(`Welcome back, ${result.name}!`);
+    }
+    setAuthModal({ isOpen: false, view: 'login' });
+    return;
+  }
+
+  // Fall back to username login (for existing/admin accounts)
+  const user = users.find(u => u.username === data.username);
+  if (!user) { showToast('Username not found.'); return; }
+
+  // Verify password if set
+  if (data.password) {
+    const { data: dbUser } = await supabase
+      .from('users')
+      .select('password')
+      .eq('id', user.id)
+      .single();
+
+    if (dbUser?.password && dbUser.password !== data.password) {
+      showToast('Incorrect password.');
+      return;
+    }
+  }
+
+  const withAdmin = { ...user, isAdmin: ADMIN_USERNAMES.includes(user.username) };
+  if (withAdmin.pin && withAdmin.isApprovedSeller) {
     setCurrentUser(withAdmin);
     setPinUnlocked(false);
     setPinModal({ isOpen: true, mode: 'enter' });
   } else {
     setCurrentUser(withAdmin);
     setPinUnlocked(true);
-    showToast(`Welcome back, ${result.name}!`);
+    showToast(`Welcome back, ${user.name}!`);
   }
   setAuthModal({ isOpen: false, view: 'login' });
 };
