@@ -9,8 +9,8 @@ export const saveTheme = (theme: Theme): void => {
     try { localStorage.setItem('kano-theme', theme); } catch (e) { console.error(e); }
 };
 
-// ── Session user (LOCAL STORAGE) ──────────────────────────────────────────────
- const getCurrentUser = (): User | null => {
+// ── Session user ──────────────────────────────────────────────────────────────
+export const getCurrentUser = (): User | null => {
     try { const s = localStorage.getItem('kano-currentUser'); return s ? JSON.parse(s) : null; } catch { return null; }
 };
 export const saveCurrentUser = (user: User): void => {
@@ -35,104 +35,7 @@ const rowToUser = (u: any): User => ({
     pin: u.pin ?? null,
 });
 
-// ── SUPABASE AUTH ─────────────────────────────────────────────────────────────
-
-// SIGN UP
-export const signUpWithEmail = async (
-  email: string,
-  password: string,
-  name: string,
-  username: string,
-  profilePicture?: string
-): Promise<User | null> => {
-  try {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { name, username, profile_picture: profilePicture ?? '' }
-      }
-    });
-    if (error) throw error;
-    if (!data.user) return null;
-
-    // wait for DB trigger
-    await new Promise(r => setTimeout(r, 500));
-
-    const { data: userData } = await supabase
-      .from('users')
-      .select('*')
-      .eq('auth_id', data.user.id)
-      .single();
-
-    if (!userData) return null;
-
-    const user = rowToUser(userData);
-    saveCurrentUser(user);
-
-    return user;
-  } catch (e) {
-    console.error('signUpWithEmail:', e);
-    return null;
-  }
-};
-
-// SIGN IN
-export const signInWithEmail = async (
-  email: string,
-  password: string
-): Promise<User | null> => {
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw error;
-    if (!data.user) return null;
-
-    const { data: userData } = await supabase
-      .from('users')
-      .select('*')
-      .eq('auth_id', data.user.id)
-      .single();
-
-    if (!userData) return null;
-
-    const user = rowToUser(userData);
-    saveCurrentUser(user);
-
-    return user;
-  } catch (e) {
-    console.error('signInWithEmail:', e);
-    return null;
-  }
-};
-
-// SIGN OUT
-export const signOut = async (): Promise<void> => {
-  await supabase.auth.signOut();
-  clearCurrentUser();
-};
-
-// GET SESSION USER
-export const getSessionUser = async (): Promise<User | null> => {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return null;
-
-    const { data } = await supabase
-      .from('users')
-      .select('*')
-      .eq('auth_id', session.user.id)
-      .single();
-
-    return data ? rowToUser(data) : null;
-  } catch {
-    return null;
-  }
-};
-
-// ── USERS ─────────────────────────────────────────────────────────────────────
+// ── Users ─────────────────────────────────────────────────────────────────────
 export const getUsers = async (): Promise<User[]> => {
     try {
         const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
@@ -141,16 +44,31 @@ export const getUsers = async (): Promise<User[]> => {
     } catch (e) { console.error('getUsers:', e); return []; }
 };
 
+export const createUser = async (user: Omit<User, 'id'>): Promise<User | null> => {
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .insert({ name: user.name, username: user.username, profile_picture: user.profilePicture, phone: user.phone ?? null })
+            .select().single();
+        if (error) throw error;
+        return rowToUser(data);
+    } catch (e) { console.error('createUser:', e); return null; }
+};
+
 export const updateUser = async (userId: string, updates: Partial<User>): Promise<boolean> => {
     try {
         const payload: Record<string, unknown> = {};
-        if (updates.name !== undefined) payload.name = updates.name;
-        if (updates.username !== undefined) payload.username = updates.username;
-        if (updates.profilePicture !== undefined) payload.profile_picture = updates.profilePicture;
-        if (updates.phone !== undefined) payload.phone = updates.phone || null;
-        if (updates.bio !== undefined) payload.bio = updates.bio || null;
-        if (updates.email !== undefined) payload.email = updates.email || null;
-        if (updates.address !== undefined) payload.address = updates.address || null;
+        if (updates.name !== undefined)             payload.name = updates.name;
+        if (updates.username !== undefined)         payload.username = updates.username;
+        if (updates.profilePicture !== undefined)   payload.profile_picture = updates.profilePicture;
+        if (updates.phone !== undefined)            payload.phone = updates.phone || null;
+        if (updates.bio !== undefined)              payload.bio = updates.bio || null;
+        if (updates.isVerified !== undefined)       payload.is_verified = updates.isVerified;
+        if (updates.isBoosted !== undefined)        payload.is_boosted = updates.isBoosted;
+        if (updates.boostedUntil !== undefined)     payload.boosted_until = updates.boostedUntil;
+        if (updates.isApprovedSeller !== undefined) payload.is_approved_seller = updates.isApprovedSeller;
+        if (updates.email !== undefined)            payload.email = updates.email || null;
+        if (updates.address !== undefined)          payload.address = updates.address || null;
 
         const { error } = await supabase.from('users').update(payload).eq('id', userId);
         if (error) throw error;
@@ -158,16 +76,22 @@ export const updateUser = async (userId: string, updates: Partial<User>): Promis
     } catch (e) { console.error('updateUser:', e); return false; }
 };
 
+// ── DELETE USER (also cleans up their saved_products rows) ───────────────────
 export const deleteUser = async (userId: string): Promise<boolean> => {
     try {
+        // 1. Remove saved_products rows for this user (avoids FK constraint errors)
         await supabase.from('saved_products').delete().eq('user_id', userId);
+
+        // 2. Remove any saved_products rows where others saved this user's products
+        //    (handled by ON DELETE CASCADE if set, otherwise manual)
+        // 3. Delete the user row itself
         const { error } = await supabase.from('users').delete().eq('id', userId);
         if (error) throw error;
         return true;
     } catch (e) { console.error('deleteUser:', e); return false; }
 };
 
-// ── PRODUCTS ──────────────────────────────────────────────────────────────────
+// ── Products ──────────────────────────────────────────────────────────────────
 const parseImages = (raw: string): string[] => {
     try { const p = JSON.parse(raw); return Array.isArray(p) ? p : [raw]; } catch { return raw ? [raw] : []; }
 };
@@ -177,77 +101,247 @@ export const getProducts = async (): Promise<Product[]> => {
         const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
         if (error) throw error;
         return (data || []).map(p => ({
-            id: p.id,
-            title: p.title,
-            price: p.price,
-            category: p.category,
-            images: parseImages(p.image),
-            location: p.location,
-            date: p.date,
-            description: p.description,
-            sellerId: p.seller_id,
+            id: p.id, title: p.title, price: p.price, category: p.category,
+            images: parseImages(p.image), location: p.location, date: p.date,
+            description: p.description, sellerId: p.seller_id,
         }));
     } catch (e) { console.error('getProducts:', e); return []; }
 };
 
 export const createProduct = async (product: Omit<Product, 'id'>): Promise<Product | null> => {
     try {
-        const { data, error } = await supabase.from('products')
-            .insert({
-                title: product.title,
-                price: product.price,
-                category: product.category,
-                image: JSON.stringify(product.images),
-                location: product.location,
-                date: product.date,
-                description: product.description,
-                seller_id: product.sellerId
-            })
+        const { data, error } = await supabase
+            .from('products')
+            .insert({ title: product.title, price: product.price, category: product.category,
+                image: JSON.stringify(product.images), location: product.location,
+                date: product.date, description: product.description, seller_id: product.sellerId })
             .select().single();
         if (error) throw error;
-
-        return {
-            id: data.id,
-            title: data.title,
-            price: data.price,
-            category: data.category,
-            images: parseImages(data.image),
-            location: data.location,
-            date: data.date,
-            description: data.description,
-            sellerId: data.seller_id,
-        };
+        return { id: data.id, title: data.title, price: data.price, category: data.category,
+            images: parseImages(data.image), location: data.location, date: data.date,
+            description: data.description, sellerId: data.seller_id };
     } catch (e) { console.error('createProduct:', e); return null; }
 };
 
-// ── SAVED PRODUCTS ────────────────────────────────────────────────────────────
-export const getSavedProductIds = async (userId?: string): Promise<Set<string>> => {
+export const updateProduct = async (productId: string, updates: Partial<Product>): Promise<boolean> => {
+    try {
+        const payload: Record<string, unknown> = {
+            title: updates.title,
+            price: updates.price,
+            category: updates.category,
+            description: updates.description,
+        };
+        if (updates.images) payload.image = JSON.stringify(updates.images);
+        const { error } = await supabase.from('products').update(payload).eq('id', productId);
+        if (error) throw error;
+        return true;
+    } catch (e) { console.error('updateProduct:', e); return false; }
+};
+
+export const deleteProduct = async (productId: string): Promise<boolean> => {
+    try {
+        const { error } = await supabase.from('products').delete().eq('id', productId);
+        if (error) throw error;
+        return true;
+    } catch (e) { console.error('deleteProduct:', e); return false; }
+};
+
+// ── Saved products ────────────────────────────────────────────────────────────
+export const getSavedProductIds = async (userId: string | undefined): Promise<Set<string>> => {
     if (!userId) return new Set();
     try {
-        const { data } = await supabase.from('saved_products').select('product_id').eq('user_id', userId);
+        const { data, error } = await supabase.from('saved_products').select('product_id').eq('user_id', userId);
+        if (error) throw error;
         return new Set((data || []).map(i => i.product_id));
-    } catch { return new Set(); }
+    } catch (e) { console.error(e); return new Set(); }
 };
-// In dbService.ts — add this instead
+export const saveProduct = async (userId: string, productId: string): Promise<boolean> => {
+    try { const { error } = await supabase.from('saved_products').insert({ user_id: userId, product_id: productId }); if (error) throw error; return true; } catch { return false; }
+};
+export const unsaveProduct = async (userId: string, productId: string): Promise<boolean> => {
+    try { const { error } = await supabase.from('saved_products').delete().eq('user_id', userId).eq('product_id', productId); if (error) throw error; return true; } catch { return false; }
+};
+
+// ── Threads & Messages ────────────────────────────────────────────────────────
+export const getThreads = async (): Promise<MessageThread[]> => {
+    try {
+        const { data: td, error: te } = await supabase.from('message_threads').select('*').order('last_message_timestamp', { ascending: false });
+        if (te) throw te;
+        return Promise.all((td || []).map(async t => {
+            const { data: md, error: me } = await supabase.from('messages').select('*').eq('thread_id', t.id).order('timestamp', { ascending: true });
+            if (me) throw me;
+            return { id: t.id, productId: t.product_id, productTitle: t.product_title,
+                participants: [t.participant1_id, t.participant2_id] as [string, string],
+                messages: (md || []).map(m => ({ id: m.id, senderId: m.sender_id, text: m.text, timestamp: m.timestamp })),
+                lastMessageTimestamp: t.last_message_timestamp };
+        }));
+    } catch (e) { console.error('getThreads:', e); return []; }
+};
+
+export const createThread = async (thread: Omit<MessageThread, 'messages'>): Promise<MessageThread | null> => {
+    try {
+        const { data, error } = await supabase.from('message_threads')
+            .insert({ id: thread.id, product_id: thread.productId, product_title: thread.productTitle,
+                participant1_id: thread.participants[0], participant2_id: thread.participants[1],
+                last_message_timestamp: thread.lastMessageTimestamp })
+            .select().single();
+        if (error) throw error;
+        return { id: data.id, productId: data.product_id, productTitle: data.product_title,
+            participants: [data.participant1_id, data.participant2_id] as [string, string],
+            messages: [], lastMessageTimestamp: data.last_message_timestamp };
+    } catch (e) { console.error('createThread:', e); return null; }
+};
+
+export const updateThreadTimestamp = async (threadId: string, timestamp: number): Promise<boolean> => {
+    try { const { error } = await supabase.from('message_threads').update({ last_message_timestamp: timestamp }).eq('id', threadId); if (error) throw error; return true; } catch { return false; }
+};
+
+export const createMessage = async (message: Message, threadId: string): Promise<Message | null> => {
+    try {
+        const { data, error } = await supabase.from('messages')
+            .insert({ thread_id: threadId, sender_id: message.senderId, text: message.text, timestamp: message.timestamp })
+            .select().single();
+        if (error) throw error;
+        await updateThreadTimestamp(threadId, message.timestamp);
+        return { id: data.id, senderId: data.sender_id, text: data.text, timestamp: data.timestamp };
+    } catch (e) { console.error('createMessage:', e); return null; }
+};
+
+export const uploadImage = async (file: File, bucket: 'products' | 'profiles'): Promise<string | null> => {
+    try {
+        const ext = file.name.split('.').pop();
+        const name = `${Date.now()}-${Math.random().toString(36).slice(7)}.${ext}`;
+        const { data, error } = await supabase.storage.from(bucket).upload(name, file);
+        if (error) throw error;
+        return supabase.storage.from(bucket).getPublicUrl(data.path).data.publicUrl;
+    } catch (e) { console.error('uploadImage:', e); return null; }
+};
+
+// ── Orders ────────────────────────────────────────────────────────────────────
+export interface Order {
+  id: string;
+  buyerId: string | null;
+  sellerId: string | null;
+  productId: string | null;
+  productTitle: string;
+  amount: number;
+  currency: string;
+  status: 'pending' | 'processing' | 'success' | 'failed' | 'shipped' | 'delivered';
+  korapayReference: string | null;
+  buyerEmail: string | null;
+  buyerName: string | null;
+  buyerPhone: string | null;
+  buyerAddress: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const getOrders = async (): Promise<Order[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(o => ({
+      id: o.id,
+      buyerId: o.buyer_id ?? null,
+      sellerId: o.seller_id ?? null,
+      productId: o.product_id ?? null,
+      productTitle: o.product_title,
+      amount: o.amount,
+      currency: o.currency ?? 'NGN',
+      status: o.status,
+      korapayReference: o.korapay_reference ?? null,
+      buyerEmail: o.buyer_email ?? null,
+      buyerName: o.buyer_name ?? null,
+      buyerPhone: o.buyer_phone ?? null,
+      buyerAddress: o.buyer_address ?? null,
+      createdAt: o.created_at,
+      updatedAt: o.updated_at,
+    }));
+  } catch (e) { console.error('getOrders:', e); return []; }
+};
+
+export const updateOrderStatus = async (
+  orderId: string,
+  status: Order['status']
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('orders')
+      .update({ status })
+      .eq('id', orderId);
+    if (error) throw error;
+    return true;
+  } catch (e) { console.error('updateOrderStatus:', e); return false; }
+};
+
+export const setUserPin = async (userId: string, pin: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase.from('users').update({ pin }).eq('id', userId);
+    if (error) throw error;
+    return true;
+  } catch (e) { console.error('setUserPin:', e); return false; }
+};
+
+export const getUserPinByUsername = async (username: string): Promise<{ id: string; pin: string | null } | null> => {
+  try {
+    const { data, error } = await supabase.from('users').select('id, pin').eq('username', username).single();
+    if (error) throw error;
+    return data ? { id: data.id, pin: data.pin ?? null } : null;
+  } catch (e) { console.error('getUserPinByUsername:', e); return null; }
+};
+// ── PASSWORD FUNCTIONS — add these to the bottom of services/dbService.ts ────
+
+/**
+ * Verifies a user's current password. Returns true if matches.
+ * Passwords are stored as plain text in the `password` column.
+ * (For production you'd hash these — but this matches the current auth pattern.)
+ */
+export const verifyUserPassword = async (userId: string, password: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('password')
+      .eq('id', userId)
+      .single();
+    if (error) throw error;
+    return (data?.password ?? '') === password;
+  } catch (e) { console.error('verifyUserPassword:', e); return false; }
+};
+
+/**
+ * Updates a user's password after verifying the current one.
+ */
 export const changeUserPassword = async (
+  userId: string,
   currentPassword: string,
   newPassword: string
 ): Promise<boolean> => {
   try {
-    // First verify current password by re-authenticating
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.email) return false;
+    const isValid = await verifyUserPassword(userId, currentPassword);
+    if (!isValid) return false;
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: user.email,
-      password: currentPassword,
-    });
-    if (signInError) return false;
-
-    // Now update to new password
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    const { error } = await supabase
+      .from('users')
+      .update({ password: newPassword })
+      .eq('id', userId);
     if (error) throw error;
     return true;
   } catch (e) { console.error('changeUserPassword:', e); return false; }
 };
 
+/**
+ * Sets a password for a user (used during registration or reset).
+ */
+export const setUserPassword = async (userId: string, password: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('users')
+      .update({ password })
+      .eq('id', userId);
+    if (error) throw error;
+    return true;
+  } catch (e) { console.error('setUserPassword:', e); return false; }
+};
