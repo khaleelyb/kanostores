@@ -10,7 +10,7 @@ export const saveTheme = (theme: Theme): void => {
 };
 
 // ── Session user (LOCAL STORAGE) ──────────────────────────────────────────────
-export const getCurrentUser = (): User | null => {
+ const getCurrentUser = (): User | null => {
     try { const s = localStorage.getItem('kano-currentUser'); return s ? JSON.parse(s) : null; } catch { return null; }
 };
 export const saveCurrentUser = (user: User): void => {
@@ -229,33 +229,4 @@ export const getSavedProductIds = async (userId?: string): Promise<Set<string>> 
     } catch { return new Set(); }
 };
 
-// ── PASSWORD FUNCTIONS ────────────────────────────────────────────────────────
-export const verifyUserPassword = async (userId: string, password: string): Promise<boolean> => {
-  try {
-    const { data } = await supabase.from('users').select('password').eq('id', userId).single();
-    return (data?.password ?? '') === password;
-  } catch { return false; }
-};
 
-export const changeUserPassword = async (
-  userId: string,
-  currentPassword: string,
-  newPassword: string
-): Promise<boolean> => {
-  const isValid = await verifyUserPassword(userId, currentPassword);
-  if (!isValid) return false;
-
-  try {
-    const { error } = await supabase.from('users').update({ password: newPassword }).eq('id', userId);
-    if (error) throw error;
-    return true;
-  } catch { return false; }
-};
-
-export const setUserPassword = async (userId: string, password: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase.from('users').update({ password }).eq('id', userId);
-    if (error) throw error;
-    return true;
-  } catch { return false; }
-};
