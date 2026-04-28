@@ -228,5 +228,26 @@ export const getSavedProductIds = async (userId?: string): Promise<Set<string>> 
         return new Set((data || []).map(i => i.product_id));
     } catch { return new Set(); }
 };
+// In dbService.ts — add this instead
+export const changeUserPassword = async (
+  currentPassword: string,
+  newPassword: string
+): Promise<boolean> => {
+  try {
+    // First verify current password by re-authenticating
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.email) return false;
 
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    });
+    if (signInError) return false;
+
+    // Now update to new password
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+    return true;
+  } catch (e) { console.error('changeUserPassword:', e); return false; }
+};
 
