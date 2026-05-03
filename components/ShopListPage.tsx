@@ -63,7 +63,7 @@ export const ShopListPage: React.FC<ShopListPageProps> = ({ category, products, 
       count: sp.length,
       minPrice: Math.min(...sp.map(p => p.price)),
       maxPrice: Math.max(...sp.map(p => p.price)),
-      thumbnail: sp[0]?.images?.[0] ?? '',
+      previews: sp.slice(0, 4).map(p => ({ id: p.id, image: p.images?.[0] ?? '', title: p.title })),
     };
   };
 
@@ -107,17 +107,23 @@ export const ShopListPage: React.FC<ShopListPageProps> = ({ category, products, 
                   <button key={seller.id} onClick={() => onSelectShop(seller)}
                     className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-orange-200 dark:hover:border-orange-800/60 overflow-hidden hover:shadow-xl hover:shadow-orange-50 dark:hover:shadow-orange-900/10 transition-all duration-300 hover:-translate-y-0.5 text-left"
                   >
-                    <div className="relative h-32 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-gray-800 dark:to-gray-900 overflow-hidden">
-                      {stats.thumbnail
-                        ? <img src={stats.thumbnail} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80" />
-                        : <div className="flex items-center justify-center h-full"><span className="text-4xl opacity-30">{emoji}</span></div>
-                      }
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-                     <div className="absolute bottom-2 right-2">
-  <span className="bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded">
-  {stats.count}
-</span>
-</div>
+                    <div className="p-3 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-gray-800 dark:to-gray-900 border-b border-gray-100 dark:border-gray-800">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Store preview</p>
+                        <span className="bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{stats.count} items</span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {Array.from({ length: 4 }).map((_, idx) => {
+                          const preview = stats.previews[idx];
+                          return (
+                            <div key={preview?.id ?? `empty-${idx}`} className="aspect-square rounded-lg overflow-hidden bg-white/70 dark:bg-gray-700/50 border border-white dark:border-gray-700">
+                              {preview?.image
+                                ? <img src={preview.image} alt={preview.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                : <div className="w-full h-full flex items-center justify-center text-xs opacity-40">{emoji}</div>}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                     <div className="p-4">
                       <div className="flex items-center gap-3">
@@ -149,11 +155,14 @@ export const ShopListPage: React.FC<ShopListPageProps> = ({ category, products, 
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
                         </div>
                       </div>
-                      <div className="mt-3 pt-3 border-t border-gray-50 dark:border-gray-800">
+                      <div className="mt-3 pt-3 border-t border-gray-50 dark:border-gray-800 flex items-end justify-between gap-2">
+                        <div>
                         <p className="text-xs text-gray-400 dark:text-gray-500">Price range</p>
                         <p className="text-sm font-bold text-orange-600 dark:text-orange-400 mt-0.5">
                           ₦{stats.minPrice.toLocaleString()}{stats.maxPrice !== stats.minPrice && ` – ₦${stats.maxPrice.toLocaleString()}`}
                         </p>
+                        </div>
+                        <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 group-hover:text-orange-500">Enter shop</span>
                       </div>
                     </div>
                   </button>
