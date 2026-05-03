@@ -6,6 +6,7 @@ interface BottomNavProps {
   activePage: Page;
   setActivePage: (page: Page) => void;
   cartCount: number; // 👈 added
+  unreadMessageCount?: number;
 }
 
 const NavBtn: React.FC<{
@@ -32,7 +33,7 @@ const NavBtn: React.FC<{
   );
 };
 
-export const BottomNav: React.FC<BottomNavProps> = ({ onPostAdClick, activePage, setActivePage, cartCount }) => {
+export const BottomNav: React.FC<BottomNavProps> = ({ onPostAdClick, activePage, setActivePage, cartCount, unreadMessageCount = 0 }) => {
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-t border-gray-100 dark:border-gray-800 shadow-xl shadow-black/10">
       <div className="flex h-16 items-stretch">
@@ -72,6 +73,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onPostAdClick, activePage,
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={activePage === 'messages' || activePage === 'cart' ? 2.5 : 1.75} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-3.75l-3.75 2.25v-2.25h-7.5a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25" />
               </svg>
+              {unreadMessageCount > 0 && (
+                <span className="absolute -top-0.5 -left-1 min-w-[16px] h-4 px-1 bg-blue-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-white dark:border-gray-950">
+                  {unreadMessageCount > 9 ? '9+' : unreadMessageCount}
+                </span>
+              )}
               {cartCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-orange-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                   {cartCount > 9 ? '9+' : cartCount}
