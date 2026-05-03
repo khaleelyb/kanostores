@@ -201,6 +201,64 @@ useEffect(() => {
   return () => { supabase.removeChannel(channel); };
 }, []);
 
+// Realtime: incoming messages / new threads for current user
+useEffect(() => {
+  if (!currentUser) return;
+
+  const channel = supabase
+    .channel(`messages-realtime-${currentUser.id}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'messages' },
+      async (payload) => {
+        const row = payload.new as any;
+        const threadId = row.thread_id as string;
+
+        const { data: t, error: te } = await supabase
+          .from('message_threads')
+          .select('*')
+          .eq('id', threadId)
+          .single();
+        if (te || !t) return;
+
+        const participants: [string, string] = [t.participant1_id, t.participant2_id];
+        if (!participants.includes(currentUser.id)) return;
+
+        const incoming = {
+          id: row.id,
+          senderId: row.sender_id,
+          text: row.text,
+          timestamp: row.timestamp,
+        };
+
+        setThreads(prev => {
+          const exists = prev.find(x => x.id === threadId);
+          if (!exists) {
+            return [{
+              id: t.id,
+              productId: t.product_id,
+              productTitle: t.product_title,
+              participants,
+              messages: [incoming],
+              lastMessageTimestamp: row.timestamp,
+            }, ...prev];
+          }
+
+          if (exists.messages.some(m => m.id === incoming.id)) return prev;
+
+          return prev.map(x =>
+            x.id === threadId
+              ? { ...x, messages: [...x.messages, incoming], lastMessageTimestamp: row.timestamp }
+              : x
+          );
+        });
+      }
+    )
+    .subscribe();
+
+  return () => { supabase.removeChannel(channel); };
+}, [currentUser?.id]);
+
 // Realtime: orders
 useEffect(() => {
   const channel = supabase
