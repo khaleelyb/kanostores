@@ -13,6 +13,20 @@ const BoostedBadge = () => (
   </span>
 );
 const isActiveBoosted = (u: any) => u.isBoosted && (!u.boostedUntil || new Date(u.boostedUntil) > new Date());
+const getSellerModeMeta = (seller: User) => {
+  if (seller.isApprovedSeller || seller.isAdmin) {
+    return {
+      storeLabel: 'Verified Store',
+      modeLabel: 'Protected Checkout',
+      modeClass: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60',
+    };
+  }
+  return {
+    storeLabel: 'Regular Store',
+    modeLabel: 'Chat-only seller',
+    modeClass: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60',
+  };
+};
 
 const CATEGORY_ICONS: Record<string, string> = {
   'Mobile Phones & Tablets': '📱', 'Computers': '💻', 'Women clothes': '👗',
@@ -88,6 +102,7 @@ export const ShopListPage: React.FC<ShopListPageProps> = ({ category, products, 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {sellers.map(seller => {
                 const stats = getStats(seller.id);
+                const sellerMode = getSellerModeMeta(seller);
                 return (
                   <button key={seller.id} onClick={() => onSelectShop(seller)}
                     className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-orange-200 dark:hover:border-orange-800/60 overflow-hidden hover:shadow-xl hover:shadow-orange-50 dark:hover:shadow-orange-900/10 transition-all duration-300 hover:-translate-y-0.5 text-left"
@@ -112,6 +127,16 @@ export const ShopListPage: React.FC<ShopListPageProps> = ({ category, products, 
                               <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{seller.name}</p>
                               {seller.isVerified && <VerifiedBadge />}
                               {isActiveBoosted(seller) && <BoostedBadge />}
+                            </div>
+                            <div className="mt-1 flex flex-wrap gap-1.5">
+                              {seller.isVerified && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/60">
+                                  Blue verified badge
+                                </span>
+                              )}
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${sellerMode.modeClass}`}>
+                                {sellerMode.modeLabel}
+                              </span>
                             </div>
                          
                           {seller.bio && (

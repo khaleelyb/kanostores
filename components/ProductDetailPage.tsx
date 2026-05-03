@@ -20,6 +20,19 @@ const BoostedBadge = () => (
 );
 
 const isActiveBoosted = (u: any) => u.isBoosted && (!u.boostedUntil || new Date(u.boostedUntil) > new Date());
+const getSellerModeMeta = (seller: User | null) => {
+  if (!seller) return null;
+  if (seller.isApprovedSeller || seller.isAdmin) {
+    return {
+      label: 'Verified Store · Protected Checkout',
+      className: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60',
+    };
+  }
+  return {
+    label: 'Chat-only seller · Manual payment',
+    className: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60',
+  };
+};
 
 interface ProductDetailPageProps {
   product: Product;
@@ -55,6 +68,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   const images = product.images && product.images.length > 0 ? product.images : [];
+  const sellerMode = getSellerModeMeta(seller);
 
   // Only admins can see phone number, WhatsApp, and Call buttons
   const isAdmin = currentUser?.isAdmin === true;
@@ -314,6 +328,10 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                         <p className="font-bold text-gray-900 dark:text-white text-sm">{seller.name}</p>
                         {seller.isVerified && <VerifiedBadge />}
                         {isActiveBoosted(seller) && <BoostedBadge />}
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {seller.isVerified && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/60">Blue verified badge</span>}
+                        {sellerMode && <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${sellerMode.className}`}>{sellerMode.label}</span>}
                       </div>
                       {hasPhone && (
                         <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
