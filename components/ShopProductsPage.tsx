@@ -14,6 +14,20 @@ const BoostedBadge = () => (
   </span>
 );
 const isActiveBoosted = (u: any) => u.isBoosted && (!u.boostedUntil || new Date(u.boostedUntil) > new Date());
+const getSellerModeMeta = (seller: User) => {
+  if (seller.isApprovedSeller || seller.isAdmin) {
+    return {
+      storeLabel: 'Verified Store',
+      modeLabel: 'Protected Checkout · Paystack + Delivery',
+      modeClass: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60',
+    };
+  }
+  return {
+    storeLabel: 'Regular Store',
+    modeLabel: 'Chat-only seller · Manual payment',
+    modeClass: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60',
+  };
+};
 
 interface ShopProductsPageProps {
   seller: User;
@@ -31,6 +45,7 @@ export const ShopProductsPage: React.FC<ShopProductsPageProps> = ({
 }) => {
   const shopProducts = products.filter(p => p.sellerId === seller.id && p.category === category);
   const allSellerProducts = products.filter(p => p.sellerId === seller.id);
+  const sellerMode = getSellerModeMeta(seller);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -61,6 +76,9 @@ export const ShopProductsPage: React.FC<ShopProductsPageProps> = ({
                 </div>
               </div>
               <div className="flex items-center gap-4 mt-3 flex-wrap">
+                <span className={`inline-flex items-center text-xs sm:text-sm font-bold px-3 py-1.5 rounded-xl border ${sellerMode.modeClass}`}>
+                  {sellerMode.storeLabel} · {sellerMode.modeLabel}
+                </span>
                 <div className="flex items-center gap-1.5 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 px-3 py-1.5 rounded-xl">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z" /></svg>
                   <span className="text-sm font-semibold">{shopProducts.length} listings in {category}</span>
