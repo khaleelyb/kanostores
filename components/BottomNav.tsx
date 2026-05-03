@@ -63,7 +63,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onPostAdClick, activePage,
 
         <div className="w-1/5">
           <button
-            onClick={() => setActivePage('messages')}
+            onClick={() => setActivePage(activePage === 'messages' ? 'cart' : 'messages')}
             className={`relative flex flex-col items-center justify-center gap-0.5 w-full h-full pt-2 pb-1 transition-all ${
               activePage === 'messages' || activePage === 'cart' ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
             }`}
