@@ -574,7 +574,7 @@ setDeliveryAreas('');
                   {numericPrice > 0 && (
                     <div className="mt-2 text-xs bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 rounded-lg px-2.5 py-2 text-amber-700 dark:text-amber-300 space-y-0.5">
                       <p>You entered: ₦{numericPrice.toLocaleString()}</p>
-                      <p>Gateway charge (4%): ₦{Math.ceil(gatewayCharge).toLocaleString()}</p>
+                      <p>Gateway charge (5%): ₦{Math.ceil(gatewayCharge).toLocaleString()}</p>
                       <p className="font-semibold">Final listing price shown to buyers: ₦{finalListingPrice.toLocaleString()}</p>
                     </div>
                   )}
