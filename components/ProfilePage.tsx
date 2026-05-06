@@ -117,7 +117,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     setPayoutDetails(prev => ({
       ...prev,
       accountNumber,
-      accountName: accountNumber.length === 10 ? (currentUser?.name ?? prev.accountName) : prev.accountName,
+      accountName: prev.accountName,
     }));
   };
 
@@ -300,8 +300,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                     {NIGERIAN_BANKS.map(bank => <option key={bank} value={bank}>{bank}</option>)}
                   </select>
                   <input value={payoutDetails.accountNumber} onChange={e => handleAccountNumberChange(e.target.value)} placeholder="Account number" className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg" />
-                  <input value={payoutDetails.accountName} onChange={e => setPayoutDetails(v => ({ ...v, accountName: e.target.value }))} placeholder="Account name (auto-filled)" className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg" />
-                  <p className="text-[11px] text-gray-400">Account name auto-fills from your profile name when account number reaches 10 digits.</p>
+                  <input value={payoutDetails.accountName} onChange={e => setPayoutDetails(v => ({ ...v, accountName: e.target.value }))} placeholder="Account name (real account name)" className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg" />
+                  <p className="text-[11px] text-gray-400">Enter the exact account name as registered with your bank.</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Available payout: ₦{availablePayoutAmount.toLocaleString()}</p>
                   {payoutSaved && <span className="text-xs font-semibold text-emerald-500">Saved</span>}
                   <button onClick={handleSavePayoutDetails} className="w-full mt-1 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-2 rounded-lg">Save payout details</button>
