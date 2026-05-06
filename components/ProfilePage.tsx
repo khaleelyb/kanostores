@@ -43,6 +43,12 @@ interface PayoutDetails {
 
 const PAYOUT_KEY = 'kano-payout-details';
 
+const NIGERIAN_BANKS = [
+  'Access Bank', 'GTBank', 'First Bank', 'Zenith Bank', 'UBA', 'Fidelity Bank',
+  'Union Bank', 'Sterling Bank', 'Wema Bank', 'FCMB', 'Stanbic IBTC', 'Polaris Bank',
+  'Ecobank', 'Keystone Bank', 'Providus Bank', 'Opay', 'Moniepoint MFB', 'Kuda Bank'
+];
+
 const ThemeSelector: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }> = ({ theme, setTheme }) => (
   <div className="px-4 py-3">
     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2.5">Appearance</p>
@@ -87,6 +93,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     }
   });
   const [payoutSaved, setPayoutSaved] = useState(false);
+  const [showPayout, setShowPayout] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sellerOrders = orders
@@ -100,6 +107,15 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   if (showHelp) return <HelpSupportPage onClose={() => setShowHelp(false)} />;
   if (showPrivacy) return <PrivacyPage onClose={() => setShowPrivacy(false)} />;
   if (showTerms) return <TermsPage onClose={() => setShowTerms(false)} />;
+
+  const handleAccountNumberChange = (value: string) => {
+    const accountNumber = value.replace(/\D/g, '').slice(0, 10);
+    setPayoutDetails(prev => ({
+      ...prev,
+      accountNumber,
+      accountName: accountNumber.length === 10 && !prev.accountName ? currentUser?.name ?? '' : prev.accountName,
+    }));
+  };
 
   const handleSavePayoutDetails = () => {
     if (!currentUser) return;
@@ -261,15 +277,25 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">Paystack Payout Details</h3>
-              {payoutSaved && <span className="text-xs font-semibold text-emerald-500">Saved</span>}
+              <button onClick={() => setShowPayout(v => !v)} className="text-xs font-semibold text-orange-500 hover:text-orange-600">{showPayout ? 'Hide' : 'Expand'}</button>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Connect the bank details you want to receive payout into.</p>
-            <div className="space-y-2">
-              <input value={payoutDetails.bankName} onChange={e => setPayoutDetails(v => ({ ...v, bankName: e.target.value }))} placeholder="Bank name" className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg" />
-              <input value={payoutDetails.accountNumber} onChange={e => setPayoutDetails(v => ({ ...v, accountNumber: e.target.value.replace(/\D/g, '').slice(0, 10) }))} placeholder="Account number" className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg" />
-              <input value={payoutDetails.accountName} onChange={e => setPayoutDetails(v => ({ ...v, accountName: e.target.value }))} placeholder="Account name" className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg" />
-              <button onClick={handleSavePayoutDetails} className="w-full mt-1 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-2 rounded-lg">Save payout details</button>
-            </div>
+            {!showPayout ? (
+              <p className="text-xs text-gray-500 dark:text-gray-400">Expand to connect Nigerian bank details for payout.</p>
+            ) : (
+              <>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Select your Nigerian bank and account details for Paystack payout.</p>
+                <div className="space-y-2">
+                  <select value={payoutDetails.bankName} onChange={e => setPayoutDetails(v => ({ ...v, bankName: e.target.value }))} className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <option value="">Select bank</option>
+                    {NIGERIAN_BANKS.map(bank => <option key={bank} value={bank}>{bank}</option>)}
+                  </select>
+                  <input value={payoutDetails.accountNumber} onChange={e => handleAccountNumberChange(e.target.value)} placeholder="Account number" className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg" />
+                  <input value={payoutDetails.accountName} onChange={e => setPayoutDetails(v => ({ ...v, accountName: e.target.value }))} placeholder="Account name (auto-filled)" className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg" />
+                  {payoutSaved && <span className="text-xs font-semibold text-emerald-500">Saved</span>}
+                  <button onClick={handleSavePayoutDetails} className="w-full mt-1 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-2 rounded-lg">Save payout details</button>
+                </div>
+              </>
+            )}
           </div>
         )}
 
