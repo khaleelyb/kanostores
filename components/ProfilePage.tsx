@@ -117,7 +117,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     setPayoutDetails(prev => ({
       ...prev,
       accountNumber,
-      accountName: accountNumber.length === 10 && !prev.accountName ? currentUser?.name ?? '' : prev.accountName,
+      accountName: accountNumber.length === 10 ? (currentUser?.name ?? prev.accountName) : prev.accountName,
     }));
   };
 
@@ -287,7 +287,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">Paystack Payout Details</h3>
-              <button onClick={() => setShowPayout(v => !v)} className="text-xs font-semibold text-orange-500 hover:text-orange-600">{showPayout ? 'Hide' : 'Expand'}</button>
+              <button onClick={() => { setShowPayout(v => !v); setPayoutDetails(prev => prev.bankName ? prev : { ...prev, bankName: NIGERIAN_BANKS[0] }); }} className="text-xs font-semibold text-orange-500 hover:text-orange-600">{showPayout ? 'Hide' : 'Expand'}</button>
             </div>
             {!showPayout ? (
               <p className="text-xs text-gray-500 dark:text-gray-400">Expand to connect Nigerian bank details for payout.</p>
@@ -301,6 +301,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   </select>
                   <input value={payoutDetails.accountNumber} onChange={e => handleAccountNumberChange(e.target.value)} placeholder="Account number" className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg" />
                   <input value={payoutDetails.accountName} onChange={e => setPayoutDetails(v => ({ ...v, accountName: e.target.value }))} placeholder="Account name (auto-filled)" className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg" />
+                  <p className="text-[11px] text-gray-400">Account name auto-fills from your profile name when account number reaches 10 digits.</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Available payout: ₦{availablePayoutAmount.toLocaleString()}</p>
                   {payoutSaved && <span className="text-xs font-semibold text-emerald-500">Saved</span>}
                   <button onClick={handleSavePayoutDetails} className="w-full mt-1 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-2 rounded-lg">Save payout details</button>
