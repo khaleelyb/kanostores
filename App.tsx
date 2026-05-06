@@ -842,6 +842,7 @@ case 'cart':
   setPinModal({ isOpen: true, mode: 'setup' });
 }}  // ✅ added here
         onChangePassword={handleChangePassword}   // ← ADD THIS LINE
+        orders={orders}
       />
     )
     : (

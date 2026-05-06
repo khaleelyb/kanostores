@@ -6,6 +6,7 @@ import { HelpSupportPage } from './HelpSupportPage';
 import { ChangePasswordModal } from './ChangePasswordModal';
 import { PrivacyPage } from './PrivacyPage';
 import { TermsPage } from './TermsPage';
+import type { Order } from '../services/dbService';
 
 const VerifiedBadge = () => (
   <svg className="w-6 h-6 text-blue-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" title="Verified account">
@@ -29,7 +30,10 @@ interface ProfilePageProps {
   setTheme: (theme: Theme) => void;
   onSetPin: () => void;
   onChangePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
+  orders: Order[];
 }
+
+const formatOrderTime = (iso: string) => new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
 const ThemeSelector: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }> = ({ theme, setTheme }) => (
   <div className="px-4 py-3">
@@ -56,7 +60,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   currentUser, onLogout, onUpdateProfilePicture, setActivePage,
   userProducts, onMessageSeller, savedProductIds, onToggleSave,
   onSelectProduct, onEditProduct, onDeleteProduct, theme, setTheme, onSetPin,
-  onChangePassword,
+  onChangePassword, orders,
 }) => {
   const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
@@ -64,6 +68,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const sellerOrders = orders
+    .filter(order => order.sellerId === currentUser?.id)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   if (!currentUser) {
     return <div className="text-center py-20"><p>Please log in to see your profile.</p></div>;
@@ -167,6 +175,42 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             </svg>
           </button>
         )}
+
+
+
+        {(currentUser.isApprovedSeller || currentUser.isAdmin) && (
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">Recent Orders</h3>
+              <span className="text-xs text-gray-400">{sellerOrders.length} total</span>
+            </div>
+
+            {sellerOrders.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">No orders yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {sellerOrders.slice(0, 8).map(order => {
+                  const isPaid = ['success', 'shipped', 'delivered'].includes(order.status);
+                  return (
+                    <div key={order.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{order.productTitle || 'Order item'}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{order.buyerName || 'Unknown buyer'} • ₦{order.amount.toLocaleString()}</p>
+                          <p className="text-xs text-gray-400 mt-1">{formatOrderTime(order.createdAt)}</p>
+                        </div>
+                        <span className={`text-[11px] font-bold px-2 py-1 rounded-full ${isPaid ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'}`}>
+                          {isPaid ? 'Payment successful' : order.status}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
 
         {/* Settings Card */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden divide-y divide-gray-50 dark:divide-gray-800">
