@@ -7,6 +7,7 @@ import { ChangePasswordModal } from './ChangePasswordModal';
 import { PrivacyPage } from './PrivacyPage';
 import { TermsPage } from './TermsPage';
 import type { Order } from '../services/dbService';
+import { resolvePaystackAccountName } from '../services/payoutService';
 
 const VerifiedBadge = () => (
   <svg className="w-6 h-6 text-blue-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" title="Verified account">
@@ -45,9 +46,24 @@ interface PayoutDetails {
 const PAYOUT_KEY = 'kano-payout-details';
 
 const NIGERIAN_BANKS = [
-  'Access Bank', 'GTBank', 'First Bank', 'Zenith Bank', 'UBA', 'Fidelity Bank',
-  'Union Bank', 'Sterling Bank', 'Wema Bank', 'FCMB', 'Stanbic IBTC', 'Polaris Bank',
-  'Ecobank', 'Keystone Bank', 'Providus Bank', 'Opay', 'Moniepoint MFB', 'Kuda Bank'
+  { name: 'Access Bank', code: '044' },
+  { name: 'GTBank', code: '058' },
+  { name: 'First Bank', code: '011' },
+  { name: 'Zenith Bank', code: '057' },
+  { name: 'UBA', code: '033' },
+  { name: 'Fidelity Bank', code: '070' },
+  { name: 'Union Bank', code: '032' },
+  { name: 'Sterling Bank', code: '232' },
+  { name: 'Wema Bank', code: '035' },
+  { name: 'FCMB', code: '214' },
+  { name: 'Stanbic IBTC', code: '221' },
+  { name: 'Polaris Bank', code: '076' },
+  { name: 'Ecobank', code: '050' },
+  { name: 'Keystone Bank', code: '082' },
+  { name: 'Providus Bank', code: '101' },
+  { name: 'Opay', code: '999992' },
+  { name: 'Moniepoint MFB', code: '50515' },
+  { name: 'Kuda Bank', code: '50211' },
 ];
 
 const ThemeSelector: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }> = ({ theme, setTheme }) => (
@@ -95,6 +111,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   });
   const [payoutSaved, setPayoutSaved] = useState(false);
   const [showPayout, setShowPayout] = useState(false);
+  const [isResolvingAccount, setIsResolvingAccount] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sellerOrders = orders
@@ -112,13 +129,19 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   if (showPrivacy) return <PrivacyPage onClose={() => setShowPrivacy(false)} />;
   if (showTerms) return <TermsPage onClose={() => setShowTerms(false)} />;
 
-  const handleAccountNumberChange = (value: string) => {
+  const handleAccountNumberChange = async (value: string) => {
     const accountNumber = value.replace(/\D/g, '').slice(0, 10);
-    setPayoutDetails(prev => ({
-      ...prev,
-      accountNumber,
-      accountName: prev.accountName,
-    }));
+    setPayoutDetails(prev => ({ ...prev, accountNumber }));
+
+    const selectedBank = NIGERIAN_BANKS.find(b => b.name === payoutDetails.bankName);
+    if (accountNumber.length === 10 && selectedBank) {
+      setIsResolvingAccount(true);
+      const resolvedName = await resolvePaystackAccountName({ accountNumber, bankCode: selectedBank.code });
+      if (resolvedName) {
+        setPayoutDetails(prev => ({ ...prev, accountName: resolvedName }));
+      }
+      setIsResolvingAccount(false);
+    }
   };
 
   const handleRequestPayoutClick = async () => {
@@ -287,7 +310,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">Paystack Payout Details</h3>
-              <button onClick={() => { setShowPayout(v => !v); setPayoutDetails(prev => prev.bankName ? prev : { ...prev, bankName: NIGERIAN_BANKS[0] }); }} className="text-xs font-semibold text-orange-500 hover:text-orange-600">{showPayout ? 'Hide' : 'Expand'}</button>
+              <button onClick={() => { setShowPayout(v => !v); setPayoutDetails(prev => prev.bankName ? prev : { ...prev, bankName: NIGERIAN_BANKS[0].name }); }} className="text-xs font-semibold text-orange-500 hover:text-orange-600">{showPayout ? 'Hide' : 'Expand'}</button>
             </div>
             {!showPayout ? (
               <p className="text-xs text-gray-500 dark:text-gray-400">Expand to connect Nigerian bank details for payout.</p>
@@ -297,11 +320,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 <div className="space-y-2">
                   <select value={payoutDetails.bankName} onChange={e => setPayoutDetails(v => ({ ...v, bankName: e.target.value }))} className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
                     <option value="">Select bank</option>
-                    {NIGERIAN_BANKS.map(bank => <option key={bank} value={bank}>{bank}</option>)}
+                    {NIGERIAN_BANKS.map(bank => <option key={bank.code} value={bank.name}>{bank.name}</option>)}
                   </select>
                   <input value={payoutDetails.accountNumber} onChange={e => handleAccountNumberChange(e.target.value)} placeholder="Account number" className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg" />
                   <input value={payoutDetails.accountName} onChange={e => setPayoutDetails(v => ({ ...v, accountName: e.target.value }))} placeholder="Account name (real account name)" className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg" />
-                  <p className="text-[11px] text-gray-400">Enter the exact account name as registered with your bank.</p>
+                  <p className="text-[11px] text-gray-400">{isResolvingAccount ? 'Resolving account name from Paystack…' : 'Account name is resolved automatically from Paystack when account number is valid.'}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Available payout: ₦{availablePayoutAmount.toLocaleString()}</p>
                   {payoutSaved && <span className="text-xs font-semibold text-emerald-500">Saved</span>}
                   <button onClick={handleSavePayoutDetails} className="w-full mt-1 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-2 rounded-lg">Save payout details</button>
