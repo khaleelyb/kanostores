@@ -6,6 +6,8 @@ import { HelpSupportPage } from './HelpSupportPage';
 import { ChangePasswordModal } from './ChangePasswordModal';
 import { PrivacyPage } from './PrivacyPage';
 import { TermsPage } from './TermsPage';
+import type { Order } from '../services/dbService';
+import { resolvePaystackAccountName } from '../services/payoutService';
 
 const VerifiedBadge = () => (
   <svg className="w-6 h-6 text-blue-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" title="Verified account">
@@ -29,7 +31,40 @@ interface ProfilePageProps {
   setTheme: (theme: Theme) => void;
   onSetPin: () => void;
   onChangePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
+  orders: Order[];
+  onRequestPayout: (bankName: string, accountNumber: string, accountName: string, amount: number) => Promise<boolean>;
 }
+
+const formatOrderTime = (iso: string) => new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+interface PayoutDetails {
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+}
+
+const PAYOUT_KEY = 'kano-payout-details';
+
+const NIGERIAN_BANKS = [
+  { name: 'Access Bank', code: '044' },
+  { name: 'GTBank', code: '058' },
+  { name: 'First Bank', code: '011' },
+  { name: 'Zenith Bank', code: '057' },
+  { name: 'UBA', code: '033' },
+  { name: 'Fidelity Bank', code: '070' },
+  { name: 'Union Bank', code: '032' },
+  { name: 'Sterling Bank', code: '232' },
+  { name: 'Wema Bank', code: '035' },
+  { name: 'FCMB', code: '214' },
+  { name: 'Stanbic IBTC', code: '221' },
+  { name: 'Polaris Bank', code: '076' },
+  { name: 'Ecobank', code: '050' },
+  { name: 'Keystone Bank', code: '082' },
+  { name: 'Providus Bank', code: '101' },
+  { name: 'Opay', code: '999992' },
+  { name: 'Moniepoint MFB', code: '50515' },
+  { name: 'Kuda Bank', code: '50211' },
+];
 
 const ThemeSelector: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }> = ({ theme, setTheme }) => (
   <div className="px-4 py-3">
@@ -56,14 +91,35 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   currentUser, onLogout, onUpdateProfilePicture, setActivePage,
   userProducts, onMessageSeller, savedProductIds, onToggleSave,
   onSelectProduct, onEditProduct, onDeleteProduct, theme, setTheme, onSetPin,
-  onChangePassword,
+  onChangePassword, orders, onRequestPayout,
 }) => {
   const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  const [showOrders, setShowOrders] = useState(false);
+  const [payoutDetails, setPayoutDetails] = useState<PayoutDetails>(() => {
+    try {
+      const raw = localStorage.getItem(PAYOUT_KEY);
+      if (!raw) return { bankName: '', accountNumber: '', accountName: '' };
+      const all = JSON.parse(raw) as Record<string, PayoutDetails>;
+      return all[currentUser?.id ?? ''] ?? { bankName: '', accountNumber: '', accountName: '' };
+    } catch {
+      return { bankName: '', accountNumber: '', accountName: '' };
+    }
+  });
+  const [payoutSaved, setPayoutSaved] = useState(false);
+  const [showPayout, setShowPayout] = useState(false);
+  const [isResolvingAccount, setIsResolvingAccount] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const sellerOrders = orders
+    .filter(order => order.sellerId === currentUser?.id)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const availablePayoutAmount = sellerOrders
+    .filter(order => ['success', 'shipped', 'delivered'].includes(order.status))
+    .reduce((sum, order) => sum + order.amount, 0);
 
   if (!currentUser) {
     return <div className="text-center py-20"><p>Please log in to see your profile.</p></div>;
@@ -72,6 +128,41 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   if (showHelp) return <HelpSupportPage onClose={() => setShowHelp(false)} />;
   if (showPrivacy) return <PrivacyPage onClose={() => setShowPrivacy(false)} />;
   if (showTerms) return <TermsPage onClose={() => setShowTerms(false)} />;
+
+  const handleAccountNumberChange = async (value: string) => {
+    const accountNumber = value.replace(/\D/g, '').slice(0, 10);
+    setPayoutDetails(prev => ({ ...prev, accountNumber }));
+
+    const selectedBank = NIGERIAN_BANKS.find(b => b.name === payoutDetails.bankName);
+    if (accountNumber.length === 10 && selectedBank) {
+      setIsResolvingAccount(true);
+      const resolvedName = await resolvePaystackAccountName({ accountNumber, bankCode: selectedBank.code });
+      if (resolvedName) {
+        setPayoutDetails(prev => ({ ...prev, accountName: resolvedName }));
+      }
+      setIsResolvingAccount(false);
+    }
+  };
+
+  const handleRequestPayoutClick = async () => {
+    if (!payoutDetails.bankName || payoutDetails.accountNumber.length !== 10 || !payoutDetails.accountName) return;
+    if (availablePayoutAmount <= 0) return;
+    await onRequestPayout(payoutDetails.bankName, payoutDetails.accountNumber, payoutDetails.accountName, availablePayoutAmount);
+  };
+
+  const handleSavePayoutDetails = () => {
+    if (!currentUser) return;
+    try {
+      const raw = localStorage.getItem(PAYOUT_KEY);
+      const all = raw ? JSON.parse(raw) : {};
+      all[currentUser.id] = payoutDetails;
+      localStorage.setItem(PAYOUT_KEY, JSON.stringify(all));
+      setPayoutSaved(true);
+      setTimeout(() => setPayoutSaved(false), 1800);
+    } catch (e) {
+      console.error('save payout details failed', e);
+    }
+  };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -166,6 +257,82 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
             </svg>
           </button>
+        )}
+
+
+
+        {(currentUser.isApprovedSeller || currentUser.isAdmin) && (
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">Orders</h3>
+              <button
+                onClick={() => setShowOrders(v => !v)}
+                className="text-xs font-semibold text-orange-500 hover:text-orange-600"
+              >
+                {showOrders ? 'Hide orders' : 'Enter orders section'}
+              </button>
+            </div>
+
+            {!showOrders ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">Tap "Enter orders section" to view full order details.</p>
+            ) : sellerOrders.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">No orders yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {sellerOrders.map(order => {
+                  const isPaid = ['success', 'shipped', 'delivered'].includes(order.status);
+                  return (
+                    <div key={order.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{order.productTitle || 'Order item'}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{order.buyerName || 'Unknown buyer'} • ₦{order.amount.toLocaleString()}</p>
+                        </div>
+                        <span className={`text-[11px] font-bold px-2 py-1 rounded-full ${isPaid ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'}`}>
+                          {isPaid ? 'Payment successful' : order.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400">Order time: {formatOrderTime(order.createdAt)}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Phone: {order.buyerPhone || '—'}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Address: {order.buyerAddress || '—'}</p>
+                      <p className="text-[11px] text-gray-400 break-all">Order ID: {order.id}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+
+
+        {(currentUser.isApprovedSeller || currentUser.isAdmin) && (
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">Paystack Payout Details</h3>
+              <button onClick={() => { setShowPayout(v => !v); setPayoutDetails(prev => prev.bankName ? prev : { ...prev, bankName: NIGERIAN_BANKS[0].name }); }} className="text-xs font-semibold text-orange-500 hover:text-orange-600">{showPayout ? 'Hide' : 'Expand'}</button>
+            </div>
+            {!showPayout ? (
+              <p className="text-xs text-gray-500 dark:text-gray-400">Expand to connect Nigerian bank details for payout.</p>
+            ) : (
+              <>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Select your Nigerian bank and account details for Paystack payout.</p>
+                <div className="space-y-2">
+                  <select value={payoutDetails.bankName} onChange={e => setPayoutDetails(v => ({ ...v, bankName: e.target.value }))} className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <option value="">Select bank</option>
+                    {NIGERIAN_BANKS.map(bank => <option key={bank.code} value={bank.name}>{bank.name}</option>)}
+                  </select>
+                  <input value={payoutDetails.accountNumber} onChange={e => handleAccountNumberChange(e.target.value)} placeholder="Account number" className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg" />
+                  <input value={payoutDetails.accountName} onChange={e => setPayoutDetails(v => ({ ...v, accountName: e.target.value }))} placeholder="Account name (real account name)" className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg" />
+                  <p className="text-[11px] text-gray-400">{isResolvingAccount ? 'Resolving account name from Paystack…' : 'Account name is resolved automatically from Paystack when account number is valid.'}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Available payout: ₦{availablePayoutAmount.toLocaleString()}</p>
+                  {payoutSaved && <span className="text-xs font-semibold text-emerald-500">Saved</span>}
+                  <button onClick={handleSavePayoutDetails} className="w-full mt-1 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-2 rounded-lg">Save payout details</button>
+                  <button onClick={handleRequestPayoutClick} disabled={!payoutDetails.bankName || payoutDetails.accountNumber.length !== 10 || !payoutDetails.accountName || availablePayoutAmount <= 0} className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white text-sm font-semibold py-2 rounded-lg">Request payout</button>
+                </div>
+              </>
+            )}
+          </div>
         )}
 
         {/* Settings Card */}

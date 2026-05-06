@@ -267,6 +267,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     return saved && CATEGORIES.includes(saved) ? saved : CATEGORIES[0];
   });
   const [price, setPrice] = useState('');
+  const numericPrice = Number(price || 0);
+  const gatewayCharge = numericPrice > 0 ? numericPrice * 0.04 : 0;
+  const finalListingPrice = numericPrice > 0 ? Math.ceil(numericPrice + gatewayCharge) : 0;
   const [description, setDescription] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -394,7 +397,7 @@ setDeliveryAreas('');
     localStorage.setItem('kano-last-category', category);
     if (isEditMode) {
   onUpdateProduct({ 
-    ...productToEdit, title, category, price: Number(price), description, images,
+    ...productToEdit, title, category, price: finalListingPrice, description, images,
     stock: stock !== '' ? Number(stock) : null,
     deliveryAvailable,
     deliveryPrice: Number(deliveryPrice) || 0,
@@ -402,7 +405,7 @@ setDeliveryAreas('');
   });
 } else {
   onAddProduct({ 
-    title, category, price: Number(price), description, images,
+    title, category, price: finalListingPrice, description, images,
     stock: stock !== '' ? Number(stock) : null,
     deliveryAvailable,
     deliveryPrice: Number(deliveryPrice) || 0,
@@ -568,6 +571,13 @@ setDeliveryAreas('');
                     required
                     placeholder="0.00"
                   />
+                  {numericPrice > 0 && (
+                    <div className="mt-2 text-xs bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 rounded-lg px-2.5 py-2 text-amber-700 dark:text-amber-300 space-y-0.5">
+                      <p>You entered: ₦{numericPrice.toLocaleString()}</p>
+                      <p>Gateway charge (4%): ₦{Math.ceil(gatewayCharge).toLocaleString()}</p>
+                      <p className="font-semibold">Final listing price shown to buyers: ₦{finalListingPrice.toLocaleString()}</p>
+                    </div>
+                  )}
                 </div>
               </div>
 

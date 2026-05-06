@@ -556,6 +556,20 @@ const handleAdminEditProduct = (product: Product) => {
   };
 
   // --- SAVE / TOGGLE ---
+
+  const handleRequestPayout = async (bankName: string, accountNumber: string, accountName: string, amount: number) => {
+    if (!currentUser) return false;
+    const ok = await db.createPayoutRequest({
+      sellerId: currentUser.id,
+      amount,
+      bankName,
+      accountNumber,
+      accountName,
+    });
+    showToast(ok ? 'Payout request submitted. Admin will process transfer.' : 'Unable to submit payout request.');
+    return ok;
+  };
+
   const handleToggleSave = async (productId: string) => {
     if (!currentUser) { setAuthModal({ isOpen: true, view: 'login' }); showToast('Log in to save items.'); return; }
     const isSaved = savedProductIds.has(productId);
@@ -798,7 +812,7 @@ cartItemCount={cartItems.find(i => i.product.id === selectedProduct.id)?.quantit
 
       case 'messages':
         return currentUser
-          ? <MessagesPage threads={threads} currentUser={currentUser} users={users} onSelectThread={handleThreadSelect} />
+          ? <MessagesPage threads={threads} currentUser={currentUser} users={users} orders={orders} onSelectThread={handleThreadSelect} />
           : <AuthPrompt page="messages" onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })} />;
 case 'cart':
   return currentUser
@@ -842,6 +856,8 @@ case 'cart':
   setPinModal({ isOpen: true, mode: 'setup' });
 }}  // ✅ added here
         onChangePassword={handleChangePassword}   // ← ADD THIS LINE
+        orders={orders}
+        onRequestPayout={handleRequestPayout}
       />
     )
     : (
