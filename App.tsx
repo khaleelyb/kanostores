@@ -798,7 +798,7 @@ cartItemCount={cartItems.find(i => i.product.id === selectedProduct.id)?.quantit
 
       case 'messages':
         return currentUser
-          ? <MessagesPage threads={threads} currentUser={currentUser} users={users} onSelectThread={handleThreadSelect} />
+          ? <MessagesPage threads={threads} currentUser={currentUser} users={users} orders={orders} onSelectThread={handleThreadSelect} />
           : <AuthPrompt page="messages" onLoginClick={() => setAuthModal({ isOpen: true, view: 'login' })} />;
 case 'cart':
   return currentUser
