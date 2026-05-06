@@ -277,6 +277,33 @@ export const getOrders = async (): Promise<Order[]> => {
   } catch (e) { console.error('getOrders:', e); return []; }
 };
 
+
+
+export interface PayoutRequest {
+  id: string;
+  sellerId: string;
+  amount: number;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  status: 'pending' | 'paid' | 'failed';
+  createdAt: string;
+}
+
+export const createPayoutRequest = async (payload: Omit<PayoutRequest, 'id' | 'status' | 'createdAt'>): Promise<boolean> => {
+  try {
+    const { error } = await supabase.from('payout_requests').insert({
+      seller_id: payload.sellerId,
+      amount: payload.amount,
+      bank_name: payload.bankName,
+      account_number: payload.accountNumber,
+      account_name: payload.accountName,
+      status: 'pending',
+    });
+    if (error) throw error;
+    return true;
+  } catch (e) { console.error('createPayoutRequest:', e); return false; }
+};
 export const updateOrderStatus = async (
   orderId: string,
   status: Order['status']
