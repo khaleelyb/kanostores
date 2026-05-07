@@ -98,7 +98,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
-  const [showOrders, setShowOrders] = useState(false);
   const [payoutDetails, setPayoutDetails] = useState<PayoutDetails>(() => {
     try {
       const raw = localStorage.getItem(PAYOUT_KEY);
@@ -258,53 +257,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             </svg>
           </button>
         )}
-
-
-
-        {(currentUser.isApprovedSeller || currentUser.isAdmin) && (
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100">Orders</h3>
-              <button
-                onClick={() => setShowOrders(v => !v)}
-                className="text-xs font-semibold text-orange-500 hover:text-orange-600"
-              >
-                {showOrders ? 'Hide orders' : 'Enter orders section'}
-              </button>
-            </div>
-
-            {!showOrders ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">Tap "Enter orders section" to view full order details.</p>
-            ) : sellerOrders.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">No orders yet.</p>
-            ) : (
-              <div className="space-y-2">
-                {sellerOrders.map(order => {
-                  const isPaid = ['success', 'shipped', 'delivered'].includes(order.status);
-                  return (
-                    <div key={order.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-1.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{order.productTitle || 'Order item'}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{order.buyerName || 'Unknown buyer'} • ₦{order.amount.toLocaleString()}</p>
-                        </div>
-                        <span className={`text-[11px] font-bold px-2 py-1 rounded-full ${isPaid ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'}`}>
-                          {isPaid ? 'Payment successful' : order.status}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-400">Order time: {formatOrderTime(order.createdAt)}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Phone: {order.buyerPhone || '—'}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Address: {order.buyerAddress || '—'}</p>
-                      <p className="text-[11px] text-gray-400 break-all">Order ID: {order.id}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-
 
         {(currentUser.isApprovedSeller || currentUser.isAdmin) && (
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
