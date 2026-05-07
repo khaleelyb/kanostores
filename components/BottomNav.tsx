@@ -64,14 +64,14 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onPostAdClick, activePage,
 
         <div className="w-1/5">
           <button
-            onClick={() => setActivePage(activePage === 'messages' ? 'cart' : 'messages')}
+            onClick={() => setActivePage('cart')}
             className={`relative flex flex-col items-center justify-center gap-0.5 w-full h-full pt-2 pb-1 transition-all ${
-              activePage === 'messages' || activePage === 'cart' ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+              activePage === 'cart' ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
             }`}
           >
-            <div className={`relative p-1 rounded-lg transition-all ${(activePage === 'messages' || activePage === 'cart') ? 'bg-orange-50 dark:bg-orange-900/20' : ''}`}>
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={activePage === 'messages' || activePage === 'cart' ? 2.5 : 1.75} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-3.75l-3.75 2.25v-2.25h-7.5a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25" />
+            <div className={`relative p-1 rounded-lg transition-all ${(activePage === 'cart') ? 'bg-orange-50 dark:bg-orange-900/20' : ''}`}>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={activePage === 'cart' ? 2.5 : 1.75} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.875-7.16a60.077 60.077 0 0 0-16.836-1.84M7.5 14.25 5.106 5.272" />
               </svg>
               {unreadMessageCount > 0 && (
                 <span className="absolute -top-0.5 -left-1 min-w-[16px] h-4 px-1 bg-blue-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-white dark:border-gray-950">
@@ -83,9 +83,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onPostAdClick, activePage,
                   {cartCount > 9 ? '9+' : cartCount}
                 </span>
               )}
-              {(activePage === 'messages' || activePage === 'cart') && <span className="absolute inset-x-2 -bottom-0.5 h-0.5 bg-orange-500 rounded-full" />}
+              {(activePage === 'cart') && <span className="absolute inset-x-2 -bottom-0.5 h-0.5 bg-orange-500 rounded-full" />}
             </div>
-            <span className="text-[10px] font-medium tracking-tight">Inbox & Cart</span>
+            <span className="text-[10px] font-medium tracking-tight">Cart</span>
           </button>
         </div>
 
