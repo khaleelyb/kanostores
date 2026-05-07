@@ -122,7 +122,6 @@ export const CartPage: React.FC<CartPageProps> = ({
 }) => {
   const [activeTab, setActiveTab]         = useState<'cart' | 'orders'>('cart');
   const [orders, setOrders]               = useState<Order[]>([]);
-  const [sellerOrders, setSellerOrders]   = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
 
   const [checkoutStep, setCheckoutStep]         = useState<'idle' | 'form' | 'processing' | 'done' | 'error'>('idle');
@@ -170,20 +169,11 @@ export const CartPage: React.FC<CartPageProps> = ({
   useEffect(() => {
     if (activeTab === 'orders' && currentUser) {
       setOrdersLoading(true);
-      Promise.all([
-        supabase.from('orders').select('*').eq('buyer_id', currentUser.id).order('created_at', { ascending: false }),
-        supabase.from('orders').select('*').eq('seller_id', currentUser.id).order('created_at', { ascending: false }),
-      ]).then(([buyerRes, sellerRes]) => {
-          if (!buyerRes.error && buyerRes.data) {
-            setOrders(buyerRes.data.map((o: any) => ({
-              id: o.id, productTitle: o.product_title, amount: o.amount,
-              currency: o.currency ?? 'NGN', status: o.status,
-              buyerName: o.buyer_name ?? null, buyerAddress: o.buyer_address ?? null,
-              createdAt: o.created_at, productId: o.product_id ?? null,
-            })));
-          }
-          if (!sellerRes.error && sellerRes.data) {
-            setSellerOrders(sellerRes.data.map((o: any) => ({
+      supabase.from('orders').select('*').eq('buyer_id', currentUser.id)
+        .order('created_at', { ascending: false })
+        .then(({ data, error }) => {
+          if (!error && data) {
+            setOrders(data.map((o: any) => ({
               id: o.id, productTitle: o.product_title, amount: o.amount,
               currency: o.currency ?? 'NGN', status: o.status,
               buyerName: o.buyer_name ?? null, buyerAddress: o.buyer_address ?? null,
@@ -597,25 +587,6 @@ export const CartPage: React.FC<CartPageProps> = ({
       {/* ── ORDERS TAB ── */}
       {activeTab === 'orders' && (
         <>
-          {sellerOrders.length > 0 && (
-            <div className="mb-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
-              <h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-2">Orders received on your products</h3>
-              <div className="space-y-2">
-                {sellerOrders.slice(0, 8).map(order => (
-                  <div key={order.id} className="flex items-center justify-between border border-gray-200 dark:border-gray-700 rounded-lg p-2.5">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{order.productTitle}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{order.buyerName || 'Buyer'} • {formatDate(order.createdAt)}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-gray-900 dark:text-white">₦{order.amount.toLocaleString()}</p>
-                      <StatusBadge status={order.status} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
           {ordersLoading ? (
             <div className="flex items-center justify-center py-20">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
