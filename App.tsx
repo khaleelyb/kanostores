@@ -582,6 +582,12 @@ const handleRemoveFromCart = (productId: string) => {
 };
 
 const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
+const unreadMessageCount = currentUser
+  ? threads.filter(t => {
+      const last = t.messages[t.messages.length - 1];
+      return last && last.senderId !== currentUser.id;
+    }).length
+  : 0;
   const handleSendMessage = async (text: string) => {
     if (!currentUser || !messageModal.product) return;
     const { product } = messageModal;
@@ -1118,7 +1124,13 @@ const sellerProducts = sellerAllProducts.filter(p => p.category === pickedCatego
       </main>
       {!isAdmin && <Footer />}
       {!isAdmin && (
-        <BottomNav onPostAdClick={handlePostAdClick} activePage={activePage} setActivePage={handlePageChange} cartCount={cartCount} />
+        <BottomNav
+  onPostAdClick={handlePostAdClick}
+  activePage={activePage}
+  setActivePage={handlePageChange}
+  cartCount={cartCount}
+  unreadMessageCount={unreadMessageCount}
+/>
       )}
       <AddProductModal
         isOpen={isAddProductModalOpen}
