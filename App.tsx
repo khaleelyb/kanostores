@@ -59,6 +59,7 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<Theme>(db.getTheme);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const scrollPosition = useRef(0);
+  const [restoreScroll, setRestoreScroll] = useState(false);
 
   // Modals
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
@@ -154,7 +155,7 @@ const App: React.FC = () => {
   }, [theme]);
 
   useEffect(() => {
-    if (!selectedProduct && scrollPosition.current > 0) window.scrollTo(0, scrollPosition.current);
+    if (!selectedProduct && scrollPosition.current > 0) setRestoreScroll(true);
   }, [selectedProduct]);
 // Realtime: new products
 useEffect(() => {
@@ -522,6 +523,7 @@ const handleAdminEditProduct = (product: Product) => {
 
   const handleSelectCategory = (category: string) => {
     scrollPosition.current = window.scrollY;
+    setRestoreScroll(false);
     window.history.pushState({ view: 'category', category, page: 'home' }, '', `#category=${encodeURIComponent(category)}`);
     setSelectedCategory(category); setSelectedShop(null); setSelectedProduct(null);
   };
@@ -897,11 +899,18 @@ case 'cart':
                     <span className="text-xs font-normal text-gray-400">({filteredProducts.length})</span>
                   </h3>
                   <ProductGrid
-                    products={[...filteredProducts].sort((a, b) => {
-                      const aB = isActiveBoosted(users.find(u => u.id === a.sellerId) as any) ? 1 : 0;
-                      const bB = isActiveBoosted(users.find(u => u.id === b.sellerId) as any) ? 1 : 0;
-                      return bB - aB;
-                    })}
+  products={[...filteredProducts].sort((a, b) => {
+    const aB = isActiveBoosted(users.find(u => u.id === a.sellerId) as any) ? 1 : 0;
+    const bB = isActiveBoosted(users.find(u => u.id === b.sellerId) as any) ? 1 : 0;
+    return bB - aB;
+  })}
+  onMessageSeller={handleMessageSeller}
+  savedProductIds={savedProductIds}
+  onToggleSave={handleToggleSave}
+  onSelectProduct={handleSelectProduct}
+  restoreScroll={restoreScroll}
+  onScrollRestored={() => setRestoreScroll(false)}
+/>
                     onMessageSeller={handleMessageSeller}
                     savedProductIds={savedProductIds}
                     onToggleSave={handleToggleSave}
