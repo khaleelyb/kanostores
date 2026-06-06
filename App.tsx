@@ -544,11 +544,12 @@ const handleChangePassword = async (currentPassword: string, newPassword: string
     setSelectedShop(seller);
   };
 
-  const handleSelectProduct = (product: Product) => {
-    scrollPosition.current = window.scrollY;
-    window.history.pushState({ view: 'product', productId: product.id, page: activePage }, '', `#product=${product.id}`);
-    setSelectedProduct(product);
-  };
+ const handleSelectProduct = (product: Product) => {
+  scrollPosition.current = window.scrollY;
+  setRestoreScroll(false);                          // ← add this
+  window.history.pushState({ view: 'product', productId: product.id, page: activePage }, '', `#product=${product.id}`);
+  setSelectedProduct(product);
+};
 
   const handleMessageSeller = (product: Product) => {
     if (!currentUser) { setAuthModal({ isOpen: true, view: 'login' }); return; }
