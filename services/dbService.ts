@@ -12,15 +12,11 @@ export const saveTheme = (theme: Theme): void => {
 // ── Session user ──────────────────────────────────────────────────────────────
 export const getCurrentUser = (): User | null => {
     try { const s = localStorage.getItem('kano-currentUser'); return s ? JSON.parse(s) : null; } catch { return null; }
-
+};
 export const saveCurrentUser = (user: User): void => {
-    try { sessionStorage.setItem('kano-currentUser', JSON.stringify(user)); } 
-    catch (e) { console.error(e); }
+    try { localStorage.setItem('kano-currentUser', JSON.stringify(user)); } catch (e) { console.error(e); }
 };
-
-export const clearCurrentUser = (): void => { 
-    sessionStorage.removeItem('kano-currentUser'); 
-};
+export const clearCurrentUser = (): void => { localStorage.removeItem('kano-currentUser'); };
 
 // ── Helper: map DB row → User ─────────────────────────────────────────────────
 const rowToUser = (u: any): User => ({
