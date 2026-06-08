@@ -30,7 +30,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
 	console.warn('[Supabase] Missing env vars. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (or SUPABASE_URL and SUPABASE_ANON_KEY).');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: sessionStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+  }
+});
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
